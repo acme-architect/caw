@@ -1,9 +1,14 @@
 /**
- * AudioEngine - High Fidelity WebAudio Procedural Military Synthesizer
- * Implements arcade FM/subtractive sound effects and 4-track dynamic chiptune/synthwave BGM.
- * Zero external audio assets required (DoF = 0).
+ * TSK-04: ProceduralSoundEngine - Zero-Asset Polyphonic WebAudio Synthesizer
+ * Standard: Lex Superior v3.2.0 (DoF = 0)
+ * Invariant: INV-AUDIO-01 (Single AudioContext, Disconnect-on-End, Bounded Polyphony)
+ * 
+ * VIA NEGATIVA:
+ * - Strictly zero external audio file loading (MP3/WAV/OGG are forbidden).
+ * - No DOM or Canvas manipulation.
  */
-class AudioEngine {
+
+class ProceduralSoundEngine {
   constructor() {
     this.ctx = null;
     this.masterGain = null;
@@ -16,7 +21,14 @@ class AudioEngine {
     this.bpm = 138;
     this.isBoss = false;
 
-    // 16-step bassline & lead frequencies (A minor / D dorian militaristic scale)
+    // Track active sound node count to enforce bounded polyphony ceiling
+    this.activeVoiceCount = 0;
+    this.maxVoices = 16;
+
+    // Pre-allocated noise buffer for explosions (1.0s white noise)
+    this.noiseBuffer = null;
+
+    // 16-step musical matrices (Militaristic arcade scale: A minor / D dorian)
     this.bassNotes = [110, 110, 130.81, 110, 146.83, 110, 130.81, 123.47, 110, 110, 164.81, 146.83, 130.81, 123.47, 98, 110];
     this.leadNotes = [440, 0, 523.25, 587.33, 659.25, 0, 587.33, 523.25, 440, 0, 659.25, 783.99, 880, 783.99, 659.25, 587.33];
     this.bossBass = [73.42, 73.42, 82.41, 73.42, 98.0, 73.42, 87.31, 73.42];
@@ -25,6 +37,8 @@ class AudioEngine {
   init() {
     if (this.ctx) return;
     const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextClass) return;
+
     this.ctx = new AudioContextClass();
 
     this.masterGain = this.ctx.createGain();
@@ -38,6 +52,15 @@ class AudioEngine {
     this.musicGain = this.ctx.createGain();
     this.musicGain.gain.setValueAtTime(0.35, this.ctx.currentTime);
     this.musicGain.connect(this.masterGain);
+
+    // Pre-create shared 1.0s noise buffer to avoid runtime GC
+    const sampleRate = this.ctx.sampleRate;
+    const bufferSize = sampleRate; // 1 second
+    this.noiseBuffer = this.ctx.createBuffer(1, bufferSize, sampleRate);
+    const data = this.noiseBuffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      data[i] = Math.random() * 2 - 1;
+    }
   }
 
   resume() {
@@ -46,90 +69,98 @@ class AudioEngine {
     }
   }
 
-  // --- SOUND EFFECTS ---
+  // --- SOUND EFFECTS (SFX) ---
 
   playShoot(type = 'vulcan') {
-    if (!this.ctx) return;
+    if (!this.ctx || this.activeVoiceCount >= this.maxVoices) return;
+    this.activeVoiceCount++;
+
     const t = this.ctx.currentTime;
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
 
-    if (type === 'vulcan') {
+    if (type === 'gau8') {
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(320, t);
+      osc.frequency.exponentialRampToValueAtTime(45, t + 0.08);
+
+      gain.gain.setValueAtTime(0.4, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
+
+      const filter = this.ctx.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(800, t);
+
+      osc.connect(filter);
+      filter.connect(gain);
+    } else {
       osc.type = 'sawtooth';
       osc.frequency.setValueAtTime(520, t);
       osc.frequency.exponentialRampToValueAtTime(90, t + 0.06);
 
-      gain.gain.setValueAtTime(0.28, t);
+      gain.gain.setValueAtTime(0.25, t);
       gain.gain.exponentialRampToValueAtTime(0.001, t + 0.06);
-
       osc.connect(gain);
-      gain.connect(this.sfxGain);
-      osc.start(t);
-      osc.stop(t + 0.06);
-    } else if (type === 'gau8') {
-      // 30mm heavy rotary cannon (A-10)
-      osc.type = 'square';
-      osc.frequency.setValueAtTime(320, t);
-      osc.frequency.exponentialRampToValueAtTime(45, t + 0.09);
-
-      gain.gain.setValueAtTime(0.45, t);
-      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.09);
-
-      // Low pass punch
-      const filter = this.ctx.createBiquadFilter();
-      filter.type = 'lowpass';
-      filter.frequency.setValueAtTime(900, t);
-
-      osc.connect(filter);
-      filter.connect(gain);
-      gain.connect(this.sfxGain);
-      osc.start(t);
-      osc.stop(t + 0.09);
     }
+
+    gain.connect(this.sfxGain);
+
+    // Strict node decoupling on completion (INV-AUDIO-01)
+    osc.onended = () => {
+      osc.disconnect();
+      gain.disconnect();
+      this.activeVoiceCount--;
+    };
+
+    osc.start(t);
+    osc.stop(t + (type === 'gau8' ? 0.08 : 0.06));
   }
 
   playMissileLaunch() {
-    if (!this.ctx) return;
+    if (!this.ctx || this.activeVoiceCount >= this.maxVoices) return;
+    this.activeVoiceCount++;
+
     const t = this.ctx.currentTime;
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
 
     osc.type = 'triangle';
     osc.frequency.setValueAtTime(800, t);
-    osc.frequency.exponentialRampToValueAtTime(220, t + 0.28);
+    osc.frequency.exponentialRampToValueAtTime(200, t + 0.25);
 
-    gain.gain.setValueAtTime(0.35, t);
-    gain.gain.linearRampToValueAtTime(0.001, t + 0.28);
+    gain.gain.setValueAtTime(0.32, t);
+    gain.gain.linearRampToValueAtTime(0.001, t + 0.25);
 
     osc.connect(gain);
     gain.connect(this.sfxGain);
+
+    osc.onended = () => {
+      osc.disconnect();
+      gain.disconnect();
+      this.activeVoiceCount--;
+    };
+
     osc.start(t);
-    osc.stop(t + 0.28);
+    osc.stop(t + 0.25);
   }
 
   playExplosion(size = 'small') {
-    if (!this.ctx) return;
-    const t = this.ctx.currentTime;
-    const dur = size === 'boss' ? 2.2 : size === 'medium' ? 0.7 : 0.35;
+    if (!this.ctx || !this.noiseBuffer || this.activeVoiceCount >= this.maxVoices) return;
+    this.activeVoiceCount++;
 
-    // Procedural white noise buffer
-    const bufferSize = Math.floor(this.ctx.sampleRate * dur);
-    const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
-    const data = buffer.getChannelData(0);
-    for (let i = 0; i < bufferSize; i++) {
-      data[i] = Math.random() * 2 - 1;
-    }
+    const t = this.ctx.currentTime;
+    const dur = size === 'boss' ? 1.8 : size === 'medium' ? 0.6 : 0.3;
 
     const noise = this.ctx.createBufferSource();
-    noise.buffer = buffer;
+    noise.buffer = this.noiseBuffer;
 
     const filter = this.ctx.createBiquadFilter();
     filter.type = 'lowpass';
-    filter.frequency.setValueAtTime(size === 'boss' ? 300 : 700, t);
+    filter.frequency.setValueAtTime(size === 'boss' ? 250 : 650, t);
     filter.frequency.linearRampToValueAtTime(30, t + dur);
 
     const gain = this.ctx.createGain();
-    const peakGain = size === 'boss' ? 0.9 : size === 'medium' ? 0.6 : 0.35;
+    const peakGain = size === 'boss' ? 0.85 : size === 'medium' ? 0.55 : 0.3;
     gain.gain.setValueAtTime(peakGain, t);
     gain.gain.exponentialRampToValueAtTime(0.001, t + dur);
 
@@ -137,54 +168,22 @@ class AudioEngine {
     filter.connect(gain);
     gain.connect(this.sfxGain);
 
+    noise.onended = () => {
+      noise.disconnect();
+      filter.disconnect();
+      gain.disconnect();
+      this.activeVoiceCount--;
+    };
+
     noise.start(t);
-  }
-
-  playItemPickup(type = 'gold') {
-    if (!this.ctx) return;
-    const t = this.ctx.currentTime;
-    const osc = this.ctx.createOscillator();
-    const gain = this.ctx.createGain();
-
-    osc.type = 'sine';
-    if (type === 'gold') {
-      osc.frequency.setValueAtTime(987.77, t); // B5
-      osc.frequency.setValueAtTime(1318.51, t + 0.08); // E6
-    } else if (type === 'fuel') {
-      osc.frequency.setValueAtTime(523.25, t); // C5
-      osc.frequency.setValueAtTime(783.99, t + 0.08); // G5
-    } else {
-      osc.frequency.setValueAtTime(659.25, t);
-      osc.frequency.setValueAtTime(1046.50, t + 0.08);
-    }
-
-    gain.gain.setValueAtTime(0.3, t);
-    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.22);
-
-    osc.connect(gain);
-    gain.connect(this.sfxGain);
-    osc.start(t);
-    osc.stop(t + 0.22);
+    noise.stop(t + dur);
   }
 
   playBombBlast() {
-    if (!this.ctx) return;
     this.playExplosion('boss');
-    const t = this.ctx.currentTime;
-    const osc = this.ctx.createOscillator();
-    const gain = this.ctx.createGain();
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(120, t);
-    osc.frequency.exponentialRampToValueAtTime(20, t + 1.2);
-    gain.gain.setValueAtTime(0.8, t);
-    gain.gain.exponentialRampToValueAtTime(0.001, t + 1.2);
-    osc.connect(gain);
-    gain.connect(this.sfxGain);
-    osc.start(t);
-    osc.stop(t + 1.2);
   }
 
-  // --- ADRENALINE MUSIC SYNTHESIZER ---
+  // --- MUSIC ENGINE ---
 
   startBGM(isBoss = false) {
     this.init();
@@ -214,33 +213,29 @@ class AudioEngine {
     const stepTime = 60 / (this.bpm * 4); // 16th notes
     const t = this.ctx.currentTime;
 
-    // 1. Kick on 0, 4, 8, 12
+    // Drum sequence
     if (this.currentStep % 4 === 0) {
       this.triggerDrum('kick', t);
     }
-
-    // 2. Snare on 4, 12
     if (this.currentStep % 8 === 4) {
       this.triggerDrum('snare', t);
     }
-
-    // 3. Hi-hat every even step
     if (this.currentStep % 2 === 0) {
       this.triggerDrum('hihat', t);
     }
 
-    // 4. Bass synth
+    // Bass Synth
     const notes = this.isBoss ? this.bossBass : this.bassNotes;
     const note = notes[this.currentStep % notes.length];
     if (note > 0) {
-      this.triggerSynthNote(note, 'sawtooth', 0.18, t, 0.22);
+      this.triggerSynthVoice(note, 'sawtooth', 0.16, t, 0.20);
     }
 
-    // 5. Lead Arpeggio
+    // Lead Arpeggio
     if (!this.isBoss) {
       const lead = this.leadNotes[this.currentStep % this.leadNotes.length];
       if (lead > 0) {
-        this.triggerSynthNote(lead, 'square', 0.09, t, 0.12);
+        this.triggerSynthVoice(lead, 'square', 0.08, t, 0.10);
       }
     }
 
@@ -249,45 +244,48 @@ class AudioEngine {
   }
 
   triggerDrum(type, time) {
+    if (!this.ctx || this.activeVoiceCount >= this.maxVoices) return;
+    this.activeVoiceCount++;
+
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+
     if (type === 'kick') {
-      const osc = this.ctx.createOscillator();
-      const gain = this.ctx.createGain();
       osc.frequency.setValueAtTime(140, time);
-      osc.frequency.exponentialRampToValueAtTime(32, time + 0.1);
-      gain.gain.setValueAtTime(0.55, time);
-      gain.gain.exponentialRampToValueAtTime(0.001, time + 0.1);
-      osc.connect(gain);
-      gain.connect(this.musicGain);
-      osc.start(time);
-      osc.stop(time + 0.1);
+      osc.frequency.exponentialRampToValueAtTime(30, time + 0.09);
+      gain.gain.setValueAtTime(0.5, time);
+      gain.gain.exponentialRampToValueAtTime(0.001, time + 0.09);
     } else if (type === 'snare') {
-      // Noise + tone
-      const osc = this.ctx.createOscillator();
-      const gain = this.ctx.createGain();
       osc.type = 'triangle';
-      osc.frequency.setValueAtTime(220, time);
-      osc.frequency.exponentialRampToValueAtTime(80, time + 0.08);
-      gain.gain.setValueAtTime(0.3, time);
-      gain.gain.exponentialRampToValueAtTime(0.001, time + 0.08);
-      osc.connect(gain);
-      gain.connect(this.musicGain);
-      osc.start(time);
-      osc.stop(time + 0.08);
+      osc.frequency.setValueAtTime(200, time);
+      osc.frequency.exponentialRampToValueAtTime(70, time + 0.07);
+      gain.gain.setValueAtTime(0.28, time);
+      gain.gain.exponentialRampToValueAtTime(0.001, time + 0.07);
     } else if (type === 'hihat') {
-      const osc = this.ctx.createOscillator();
-      const gain = this.ctx.createGain();
       osc.type = 'sawtooth';
-      osc.frequency.setValueAtTime(9500, time);
-      gain.gain.setValueAtTime(0.07, time);
+      osc.frequency.setValueAtTime(9000, time);
+      gain.gain.setValueAtTime(0.06, time);
       gain.gain.exponentialRampToValueAtTime(0.001, time + 0.03);
-      osc.connect(gain);
-      gain.connect(this.musicGain);
-      osc.start(time);
-      osc.stop(time + 0.03);
     }
+
+    osc.connect(gain);
+    gain.connect(this.musicGain);
+
+    const dur = type === 'hihat' ? 0.03 : type === 'snare' ? 0.07 : 0.09;
+    osc.onended = () => {
+      osc.disconnect();
+      gain.disconnect();
+      this.activeVoiceCount--;
+    };
+
+    osc.start(time);
+    osc.stop(time + dur);
   }
 
-  triggerSynthNote(freq, type, dur, time, vol) {
+  triggerSynthVoice(freq, type, dur, time, vol) {
+    if (!this.ctx || this.activeVoiceCount >= this.maxVoices) return;
+    this.activeVoiceCount++;
+
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
     const filter = this.ctx.createBiquadFilter();
@@ -296,8 +294,8 @@ class AudioEngine {
     osc.frequency.setValueAtTime(freq, time);
 
     filter.type = 'lowpass';
-    filter.frequency.setValueAtTime(1800, time);
-    filter.frequency.exponentialRampToValueAtTime(400, time + dur);
+    filter.frequency.setValueAtTime(1600, time);
+    filter.frequency.exponentialRampToValueAtTime(350, time + dur);
 
     gain.gain.setValueAtTime(vol, time);
     gain.gain.exponentialRampToValueAtTime(0.001, time + dur);
@@ -306,10 +304,22 @@ class AudioEngine {
     filter.connect(gain);
     gain.connect(this.musicGain);
 
+    osc.onended = () => {
+      osc.disconnect();
+      filter.disconnect();
+      gain.disconnect();
+      this.activeVoiceCount--;
+    };
+
     osc.start(time);
     osc.stop(time + dur);
   }
 }
 
-window.soundEngine = new AudioEngine();
-
+// Module export & browser registration
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = { ProceduralSoundEngine };
+} else if (typeof window !== 'undefined') {
+  window.ProceduralSoundEngine = ProceduralSoundEngine;
+  window.soundEngine = new ProceduralSoundEngine();
+}
