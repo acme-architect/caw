@@ -1,0 +1,15 @@
+{
+    "norm_version": "1.0",
+    "project_name": "client-core",
+    "extends": "https://github.com/acme-foundation/acme.git#v3.2.0",
+    "active_norm_scopes": [
+        "norms/core/*",
+        "norms/domain/ingestion/*",
+        "norms/procedural/*"
+    ],
+    "upstream_dispatch": {
+        "remote": "origin",
+        "branch_template": "rfcs/{project_name}/RFC_{hex3}_{slug}",
+        "auto_dispatch": true
+    }
+}

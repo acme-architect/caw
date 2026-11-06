@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Carrier Air Wing: Apex Protocol</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:ital,wght@0,400;0,600;0,700;1,700&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="game-container">
+    <canvas id="gameCanvas" width="1280" height="720"></canvas>
+    
+    <!-- Top HUD Overlay -->
+    <div id="hud-top" class="ui-layer">
+      <div class="hud-block player-info">
+        <div class="hud-tag">CALLSIGN: <span id="hud-callsign">VIPER-1</span></div>
+        <div class="hud-bars">
+          <div class="bar-container fuel-bar-wrap">
+            <span class="bar-label">FUEL</span>
+            <div class="bar-track"><div id="hud-fuel" class="bar-fill fuel-fill"></div></div>
+            <span id="hud-fuel-text" class="bar-num">100%</span>
+          </div>
+          <div class="bar-container shield-bar-wrap">
+            <span class="bar-label">ARMOR</span>
+            <div class="bar-track"><div id="hud-shield" class="bar-fill shield-fill"></div></div>
+            <span id="hud-shield-text" class="bar-num">100%</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="hud-block score-board">
+        <div class="hud-item"><span class="lbl">SCORE</span><span id="hud-score" class="val">0000000</span></div>
+        <div class="hud-item"><span class="lbl">HIGH</span><span id="hud-highscore" class="val gold">0075000</span></div>
+        <div class="hud-item"><span class="lbl">FUNDS</span><span id="hud-gold" class="val gold">$1500</span></div>
+      </div>
+
+      <div class="hud-block weapon-status">
+        <div class="hud-tag">PRIMARY GUN: <span id="hud-vulcan-level">MK-1 LVL 1</span></div>
+        <div class="hud-tag">SUB-WEAPON: <span id="hud-sub-name">SPARROW AAM</span> (<span id="hud-sub-ammo">24</span>)</div>
+        <div class="hud-tag special-bomb">TACTICAL BOMB [SPACE]: <span id="hud-bombs">3</span></div>
+      </div>
+    </div>
+
+    <!-- Boss Warning Overlay -->
+    <div id="boss-warning" class="screen-flash-banner">
+      <div class="warning-tape top">WARNING // WARNING // WARNING // WARNING // WARNING</div>
+      <div class="warning-content">
+        <div class="warning-title">EMERGENCY DETECTED</div>
+        <div id="boss-warning-sub" class="warning-sub">MASSIVE AIRBORNE DREADNOUGHT INCOMING</div>
+      </div>
+      <div class="warning-tape bottom">WARNING // WARNING // WARNING // WARNING // WARNING</div>
+    </div>
+
+    <!-- Boss Health Bar -->
+    <div id="boss-health-bar">
+      <div class="boss-title-row">
+        <span id="boss-name" class="boss-name">STRATOSPHERIC FORTRESS</span>
+        <span class="boss-tag">TARGET THREAT: CRITICAL</span>
+      </div>
+      <div class="boss-track">
+        <div id="boss-health-fill" class="boss-fill"></div>
+      </div>
+    </div>
+
+    <!-- Bottom HUD / Radio Comms -->
+    <div id="hud-bottom">
+      <div class="comm-feed">
+        <div class="comm-avatar">HQ</div>
+        <div class="comm-text"><span id="comm-speaker" class="comm-speaker">CARRIER COMMAND:</span> <span id="comm-text">Flight wing prepped for catapult launch. Intercept hostile formations!</span></div>
+      </div>
+      <div class="hud-tag">FLIGHT VECTOR: <span style="color:#00ffcc;">SECTOR BRAVO</span></div>
+    </div>
+
+    <!-- Title / Deployment Screen -->
+    <div id="title-screen" class="screen-modal">
+      <div class="game-logo">
+        <div class="logo-sub">ARCADE AIR SUPERIORITY</div>
+        <div class="logo-main">CARRIER AIR WING</div>
+        <div style="font-size:12px; letter-spacing:5px; color:#6fa8dc; margin-top:4px;">APEX PROTOCOL</div>
+      </div>
+
+      <div class="hangar-select">
+        <!-- F/A-18 Card -->
+        <div class="plane-card selected" data-plane="f18">
+          <div class="plane-name">F/A-18 HORNET</div>
+          <div class="plane-desc">Multi-role carrier strike fighter. Balanced speed, vulcan rate and radar-guided Sparrow missiles.</div>
+          <div class="plane-stat-row"><span>SPEED</span><div class="stat-bar"><div class="stat-bar-fill" style="width:75%;"></div></div></div>
+          <div class="plane-stat-row"><span>ARMOR</span><div class="stat-bar"><div class="stat-bar-fill" style="width:65%;"></div></div></div>
+          <div class="plane-stat-row"><span>FIREPOWER</span><div class="stat-bar"><div class="stat-bar-fill" style="width:80%;"></div></div></div>
+        </div>
+
+        <!-- A-10 Card -->
+        <div class="plane-card" data-plane="a10">
+          <div class="plane-name">A-10 WARTHOG</div>
+          <div class="plane-desc">Heavy ground attack titan. Titanium bathtub armor, 30mm Avenger cannon, and devastating cluster munitions.</div>
+          <div class="plane-stat-row"><span>SPEED</span><div class="stat-bar"><div class="stat-bar-fill" style="width:50%;"></div></div></div>
+          <div class="plane-stat-row"><span>ARMOR</span><div class="stat-bar"><div class="stat-bar-fill" style="width:100%; background:#00ff66;"></div></div></div>
+          <div class="plane-stat-row"><span>FIREPOWER</span><div class="stat-bar"><div class="stat-bar-fill" style="width:95%; background:#ff4400;"></div></div></div>
+        </div>
+
+        <!-- F-14 Card -->
+        <div class="plane-card" data-plane="f14">
+          <div class="plane-name">F-14 TOMCAT</div>
+          <div class="plane-desc">Supersonic fleet air defense interceptor. Extreme velocity, long-range Phoenix high-impact missiles.</div>
+          <div class="plane-stat-row"><span>SPEED</span><div class="stat-bar"><div class="stat-bar-fill" style="width:100%; background:#00ddff;"></div></div></div>
+          <div class="plane-stat-row"><span>ARMOR</span><div class="stat-bar"><div class="stat-bar-fill" style="width:55%;"></div></div></div>
+          <div class="plane-stat-row"><span>FIREPOWER</span><div class="stat-bar"><div class="stat-bar-fill" style="width:85%;"></div></div></div>
+        </div>
+      </div>
+
+      <button id="btn-launch" class="btn-primary">CATAPULT LAUNCH</button>
+      <div class="controls-hint">
+        CONTROLS: <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> or <kbd>Arrows</kbd> Move | <kbd>J</kbd> or <kbd>Z</kbd> Vulcan | <kbd>K</kbd> or <kbd>X</kbd> Sub-Weapon | <kbd>SPACE</kbd> Tactical Bomb
+      </div>
+    </div>
+
+    <!-- Hangar Armory / Shop Modal -->
+    <div id="shop-screen" class="screen-modal hidden">
+      <div class="game-logo" style="margin-bottom:14px;">
+        <div class="logo-sub">CVN-73 INDEPENDENCE // FLIGHT DECK</div>
+        <div class="logo-main" style="font-size:36px;">HANGAR ARMORY</div>
+      </div>
+      <div style="font-size:16px; margin-bottom:18px;">AVAILABLE FUNDS: <span id="shop-funds" style="color:var(--gold-color); font-weight:900;">$1500</span></div>
+
+      <div class="shop-grid">
+        <div class="shop-item-card">
+          <div class="shop-item-head">
+            <span class="shop-item-title">VULCAN UPGRADE (+1 LVL)</span>
+            <span class="shop-item-price">$1200</span>
+          </div>
+          <p class="shop-item-desc">Increases rotary cannon spread and fire intensity up to Mk-5 Apex firestorm.</p>
+          <button class="btn-buy" data-item="vulcan" data-cost="1200">PURCHASE</button>
+        </div>
+
+        <div class="shop-item-card">
+          <div class="shop-item-head">
+            <span class="shop-item-title">MISSILE RESTOCK (+20)</span>
+            <span class="shop-item-price">$800</span>
+          </div>
+          <p class="shop-item-desc">Replenishes guided secondary ordnance racks for heavy strike capability.</p>
+          <button class="btn-buy" data-item="missile" data-cost="800">PURCHASE</button>
+        </div>
+
+        <div class="shop-item-card">
+          <div class="shop-item-head">
+            <span class="shop-item-title">TACTICAL BOMB (+1)</span>
+            <span class="shop-item-price">$1500</span>
+          </div>
+          <p class="shop-item-desc">Emergency ordnance that clears all enemy projectiles and inflicts severe blast trauma.</p>
+          <button class="btn-buy" data-item="bomb" data-cost="1500">PURCHASE</button>
+        </div>
+
+        <div class="shop-item-card">
+          <div class="shop-item-head">
+            <span class="shop-item-title">ARMOR REPAIR (100%)</span>
+            <span class="shop-item-price">$900</span>
+          </div>
+          <p class="shop-item-desc">Composite ceramic hull patch restores structural durability to maximum.</p>
+          <button class="btn-buy" data-item="armor" data-cost="900">PURCHASE</button>
+        </div>
+
+        <div class="shop-item-card">
+          <div class="shop-item-head">
+            <span class="shop-item-title">JP-5 FUEL TANK (100%)</span>
+            <span class="shop-item-price">$600</span>
+          </div>
+          <p class="shop-item-desc">Refills internal aviation fuel tanks to guarantee maximum mission loiter time.</p>
+          <button class="btn-buy" data-item="fuel" data-cost="600">PURCHASE</button>
+        </div>
+      </div>
+
+      <button id="btn-shop-continue" class="btn-primary" style="margin-top:10px;">DEPART CARRIER DECK</button>
+    </div>
+
+    <!-- Game Over Screen -->
+    <div id="game-over-screen" class="screen-modal hidden">
+      <div class="game-logo">
+        <div class="logo-sub" style="color:#ff3b30;">MISSION TERMINATED</div>
+        <div class="logo-main" style="color:#ff3b30; filter:drop-shadow(0 0 25px rgba(255,0,0,0.8));">AIRCRAFT DESTROYED</div>
+      </div>
+      <div style="font-size:20px; margin-bottom:24px;">FINAL COMBAT SCORE: <span id="final-score" style="color:#00ddff; font-weight:900;">0000000</span></div>
+      <button id="btn-restart" class="btn-primary">SCRAMBLE REPLACEMENT</button>
+    </div>
+
+    <!-- Victory Screen -->
+    <div id="victory-screen" class="screen-modal hidden">
+      <div class="game-logo">
+        <div class="logo-sub" style="color:#00ffcc;">AIR THEATER LIBERATED</div>
+        <div class="logo-main" style="filter:drop-shadow(0 0 25px rgba(0,255,200,0.8));">MISSION ACCOMPLISHED</div>
+      </div>
+      <div style="font-size:22px; margin-bottom:24px;">AIR SUPERIORITY SCORE: <span id="victory-score" style="color:var(--gold-color); font-weight:900;">0000000</span></div>
+      <p style="color:#8da4be; max-width:600px; text-align:center; margin-bottom:26px; line-height:1.5;">All hostile airborne fortresses and interceptor wings neutralized. The carrier battle group has secured uncontested naval corridors.</p>
+      <button id="btn-victory-restart" class="btn-primary">RETURN TO FLIGHT DECK</button>
+    </div>
+  </div>
+
+  <script src="js/sound.js"></script>
+  <script src="js/render.js"></script>
+  <script src="js/entities.js"></script>
+  <script src="js/stages.js"></script>
+  <script src="js/game.js"></script>
+</body>
+</html>
