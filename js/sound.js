@@ -312,3 +312,4 @@ class AudioEngine {
 }
 
 window.soundEngine = new AudioEngine();
+

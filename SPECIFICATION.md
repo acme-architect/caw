@@ -36,3 +36,4 @@
 - [x] **DoD-3:** Yakıt, Zırh, Skor, Dükkan (Shop), Taktik Bomba, Özel Silahlar ve Boss barı eksiksiz çalışır.
 - [x] **DoD-4:** Klavye (WASD / Yön tuşları + J/K/L/Space) ve dokunmatik/gamepad kontrolleri tam desteklenir.
 - [x] **DoD-5:** Object pooling ile sürekli bellek stabilitesi sağlanır.
+

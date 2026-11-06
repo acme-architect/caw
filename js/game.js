@@ -526,3 +526,4 @@ class GameEngine {
 window.addEventListener('DOMContentLoaded', () => {
   window.gameEngine = new GameEngine();
 });
+

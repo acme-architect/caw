@@ -15,6 +15,20 @@ class VectorRenderEngine {
     this.shakeX = 0;
     this.shakeY = 0;
     this.time = 0;
+
+    // Load High-Res In-Game Textures
+    this.textures = {
+      f18: new Image(),
+      a10: new Image(),
+      f14: new Image(),
+      mig21: new Image(),
+      hind: new Image()
+    };
+    this.textures.f18.src = 'assets/f18_thumb.jpg';
+    this.textures.a10.src = 'assets/a10_thumb.jpg';
+    this.textures.f14.src = 'assets/f14_thumb.jpg';
+    this.textures.mig21.src = 'assets/mig21_thumb.jpg';
+    this.textures.hind.src = 'assets/hind_thumb.jpg';
   }
 
   addShake(val) {
@@ -155,12 +169,28 @@ class VectorRenderEngine {
       ctx.globalAlpha = 0.4;
     }
 
-    if (p.type === 'f18') {
-      this.renderF18(ctx, p);
-    } else if (p.type === 'a10') {
-      this.renderA10(ctx, p);
-    } else if (p.type === 'f14') {
-      this.renderF14(ctx, p);
+    // Texture or Vector fallback
+    const tex = this.textures[p.type];
+    if (tex && tex.complete && tex.naturalWidth > 0) {
+      // Draw texture sprite with border glow
+      ctx.save();
+      ctx.beginPath();
+      ctx.roundRect(-35, -20, 70, 40, 6);
+      ctx.clip();
+      ctx.drawImage(tex, -35, -20, 70, 40);
+      ctx.restore();
+
+      ctx.strokeStyle = '#00ddff';
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(-35, -20, 70, 40);
+    } else {
+      if (p.type === 'f18') {
+        this.renderF18(ctx, p);
+      } else if (p.type === 'a10') {
+        this.renderA10(ctx, p);
+      } else if (p.type === 'f14') {
+        this.renderF14(ctx, p);
+      }
     }
 
     // Engine Afterburner Flame
@@ -357,7 +387,19 @@ class VectorRenderEngine {
     ctx.save();
     ctx.translate(e.x, e.y);
 
-    if (e.type === 'mig21') {
+    const tex = this.textures[e.type];
+    if (tex && tex.complete && tex.naturalWidth > 0 && e.type !== 'boss') {
+      ctx.save();
+      ctx.beginPath();
+      ctx.roundRect(-28, -16, 56, 32, 4);
+      ctx.clip();
+      ctx.drawImage(tex, -28, -16, 56, 32);
+      ctx.restore();
+
+      ctx.strokeStyle = '#ff3b30';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(-28, -16, 56, 32);
+    } else if (e.type === 'mig21') {
       // Classic Fishbed fighter: Delta wing, nose cone intake
       ctx.fillStyle = '#a63b32';
       ctx.strokeStyle = '#4a100a';
@@ -587,3 +629,4 @@ class VectorRenderEngine {
 }
 
 window.VectorRenderEngine = VectorRenderEngine;
+

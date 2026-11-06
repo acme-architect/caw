@@ -417,6 +417,31 @@ canvas#gameCanvas {
   margin-bottom: 30px;
 }
 
+#title-screen {
+  background: linear-gradient(180deg, rgba(4, 9, 18, 0.82) 0%, rgba(4, 9, 18, 0.95) 100%), url('../assets/carrier_deck.jpg') center/cover no-repeat;
+}
+
+#shop-screen {
+  background: linear-gradient(180deg, rgba(6, 14, 25, 0.88) 0%, rgba(4, 9, 18, 0.96) 100%), url('../assets/f18_splash.png') center/cover no-repeat;
+}
+
+.plane-img-thumb {
+  width: 100%;
+  height: 105px;
+  background-size: cover;
+  background-position: center;
+  border-radius: 4px;
+  border: 1px solid rgba(0, 221, 255, 0.3);
+  margin-bottom: 12px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+  transition: transform 0.2s ease;
+}
+
+.plane-card:hover .plane-img-thumb {
+  transform: scale(1.03);
+  border-color: #00ddff;
+}
+
 .plane-card {
   width: 250px;
   background: var(--panel-bg);
@@ -619,3 +644,4 @@ canvas#gameCanvas {
   font-family: var(--font-mono);
   font-size: 10px;
 }
+

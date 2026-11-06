@@ -125,3 +125,4 @@ class CampaignStageManager {
 }
 
 window.CampaignStageManager = CampaignStageManager;
+
