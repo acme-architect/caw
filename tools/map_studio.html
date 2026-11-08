@@ -7,6 +7,8 @@
   <title>Carrier Air Wing - Map Studio & Neon Diorama Level Workbench</title>
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
+  <!-- HUD Overlay Engine -->
+  <script src="../src/hud_overlay.js"></script>
   <style>
     * {
       box-sizing: border-box;
@@ -152,6 +154,21 @@
               class="text-[10px] bg-cyan-900/60 border border-cyan-700/60 px-1.5 py-0.5 rounded font-mono text-cyan-200">[M]
               Tuşu</span>
           </button>
+        </div>
+
+        <!-- Telsiz & Başarım Test Butonları (Radio Comms & Achievement Triggers) -->
+        <div class="pt-2 border-t border-slate-800/80 space-y-1.5">
+          <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Telsiz & Görev Testleri:</div>
+          <div class="grid grid-cols-2 gap-1.5">
+            <button onclick="testRadioPilotWingman()"
+              class="py-1.5 px-2 bg-gradient-to-r from-emerald-950 to-slate-900 border border-emerald-700 hover:border-emerald-400 text-emerald-300 text-[10px] font-bold rounded flex items-center justify-center gap-1 shadow">
+              <span>📻</span> Test Comms: Pilot/Wingman
+            </button>
+            <button onclick="testAchievementToast()"
+              class="py-1.5 px-2 bg-gradient-to-r from-cyan-950 to-slate-900 border border-cyan-700 hover:border-cyan-400 text-cyan-300 text-[10px] font-bold rounded flex items-center justify-center gap-1 shadow">
+              <span>★</span> Hedef Tamamlandı
+            </button>
+          </div>
         </div>
 
         <!-- Layer Stack Manager -->
@@ -364,6 +381,24 @@
     const ctx = canvas.getContext('2d');
     const W = 960;
     const H = 540;
+
+    // Initialize HUD Overlay System (Capcom CPS-1 3+3 Inventory + Radio Comms)
+    const hud = new CAWHudOverlay();
+
+    function testRadioPilotWingman() {
+      // Toggle between pilot and wingman dialogue
+      const dialogues = [
+        { speaker: 'wingman', msg: 'FOX TWO! WATCH YOUR TAIL, ENEMY MIG-21 INBOUND OVER THE BRIDGE!' },
+        { speaker: 'pilot', msg: 'ROGER THAT, GOOSE. SWITCHING TO VULCAN AND ENGAGING AFTERBURNERS!' },
+        { speaker: 'wingman', msg: 'HEAVY DREADNOUGHT RADAR LOCK DETECTED! PREPARE PHOENIX MISSILES!' }
+      ];
+      const selected = dialogues[Math.floor(Math.random() * dialogues.length)];
+      hud.triggerRadioDialogue(selected.speaker, selected.msg);
+    }
+
+    function testAchievementToast() {
+      hud.triggerAchievement('PRIMARY OBJECTIVE COMPLETED: AIRSPACE REG-01 SECURED');
+    }
 
     // --- State & Map Architecture ---
     const MAP_TOTAL_LENGTH = 5000;
@@ -783,6 +818,10 @@
       if (STATE.showTacticalMap) {
         renderIsometricTacticalMap(ctx, cx, cy);
       }
+
+      // --- KATMAN 7: CAPCOM CPS-1 3+3 ENVANTER, TELSİZ VE STATUS HUD SİSTEMİ ---
+      hud.update();
+      hud.render(ctx, W, H, STATE.cameraY, MAP_TOTAL_LENGTH);
 
       requestAnimationFrame(render);
     }
