@@ -56,3 +56,7 @@
    - **Çalışma Zamanı Yalıtımı (Runtime Isolation):**
      * `tools/` ve `.upstream/*/tools/` içindeki hiçbir araç, dağıtılacak oyunun (`src/`) nihai bundle'ına dahil edilemez (Zero-Leakage Invariant).
 
+10. **INV-MACRO-REPRODUCIBILITY-01 (Deterministik Makro İcra ve Yeniden Üretilebilirlik):**
+    - Projenin tüm dikey kesitleri, varlık hatları, koordinat projeksiyonları ve aşama zaman çizelgeleri specs/macro.md içinde makro düzeyinde eksiksiz tanımlanmak zorundadır.
+    - Başsız (headless) veya sıfırdan bir ortamda çalıştırıldığında, specs/macro.md içindeki tüm deklarasyonlar insan müdahalesi veya sezgisel tahmin gerektirmeksizin ( = 0$) tamamen yeniden üretilebilir (reproducible) olmalıdır.
+    - Herhangi bir aşama veya varlık parametresi macro.md dışına taşınamaz veya soyutlanamaz.
