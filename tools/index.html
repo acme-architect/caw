@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Carrier Air Wing - CAW Staging Workbench Launcher</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* Custom Scrollbar for sidebar */
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: #0f172a; }
+    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 2px; }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 flex h-screen overflow-hidden font-sans select-none">
+
+  <!-- Left Sidebar Navigation -->
+  <aside class="w-64 bg-slate-900 border-r border-slate-800 flex flex-col justify-between shrink-0">
+    
+    <!-- Top Branding & Navigation -->
+    <div class="flex flex-col">
+      
+      <!-- Header / Logo -->
+      <div class="p-4 border-b border-slate-800 flex items-center gap-2.5">
+        <div class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse"></div>
+        <div>
+          <h1 class="text-xs font-bold uppercase tracking-wider text-slate-100">CAW Staging Workbench</h1>
+          <p class="text-[10px] text-slate-500 font-mono">ACME Normative Tooling v3.2</p>
+        </div>
+      </div>
+
+      <!-- Tools Navigation Menu -->
+      <nav class="p-3 space-y-1">
+        <div class="text-[10px] font-bold text-slate-500 uppercase px-2 py-1 tracking-wider">İcra Tezgâhları</div>
+        
+        <!-- Tool 1: 3D Model & Gizmo Viewer -->
+        <button 
+          onclick="loadTool('asset_viewer.html', 'btn-asset-viewer')" 
+          id="btn-asset-viewer"
+          class="w-full text-left px-3 py-2 rounded text-xs font-medium flex items-center gap-2.5 transition text-slate-300 hover:bg-slate-800 hover:text-slate-100"
+        >
+          <span class="text-base">🧊</span>
+          <div class="truncate">
+            <div class="truncate font-semibold">3D Model & Gizmo Viewer</div>
+            <div class="text-[10px] text-slate-500 font-mono truncate">asset_viewer.html</div>
+          </div>
+        </button>
+
+        <!-- Tool 2: 2.5D Scroll Testbench -->
+        <button 
+          onclick="loadTool('scroll_test.html', 'btn-scroll-test')" 
+          id="btn-scroll-test"
+          class="w-full text-left px-3 py-2 rounded text-xs font-medium flex items-center gap-2.5 transition text-slate-300 hover:bg-slate-800 hover:text-slate-100"
+        >
+          <span class="text-base">🌊</span>
+          <div class="truncate">
+            <div class="truncate font-semibold">2.5D Scroll Testbench</div>
+            <div class="text-[10px] text-slate-500 font-mono truncate">scroll_test.html</div>
+          </div>
+        </button>
+
+        <!-- Tool 3: Sockets & Tuner (Future Staging) -->
+        <button 
+          onclick="loadTool('tuner.html', 'btn-tuner')" 
+          id="btn-tuner"
+          class="w-full text-left px-3 py-2 rounded text-xs font-medium flex items-center gap-2.5 transition text-slate-400 hover:bg-slate-800/60"
+        >
+          <span class="text-base">🎯</span>
+          <div class="truncate">
+            <div class="truncate font-semibold flex items-center gap-1.5">
+              <span>Sockets & Tuner</span>
+              <span class="text-[9px] bg-slate-800 text-amber-400 border border-amber-800/50 px-1 py-0.2 rounded">SOON</span>
+            </div>
+            <div class="text-[10px] text-slate-500 font-mono truncate">tuner.html</div>
+          </div>
+        </button>
+      </nav>
+
+    </div>
+
+    <!-- Bottom System & Specs State Badge -->
+    <div class="p-3 border-t border-slate-800 bg-slate-950/80 space-y-2">
+      <div class="flex items-center justify-between text-[11px]">
+        <span class="text-slate-400">specs/state.json:</span>
+        <span id="state-badge" class="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-950 text-emerald-400 border border-emerald-800 flex items-center gap-1">
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> ONLINE
+        </span>
+      </div>
+      <div class="text-[10px] text-slate-500 font-mono truncate" id="state-meta">
+        DoF = 0 • Lineage Sealed
+      </div>
+    </div>
+
+  </aside>
+
+  <!-- Right Viewport (Iframe Sandbox Isolation) -->
+  <main class="flex-1 flex flex-col bg-slate-950 overflow-hidden relative">
+    
+    <!-- Viewport Header Toolbar -->
+    <div class="h-9 border-b border-slate-800 bg-slate-900/90 px-4 flex items-center justify-between shrink-0">
+      <div class="flex items-center gap-2 text-xs">
+        <span class="text-slate-500">Active Viewport:</span>
+        <strong id="active-tool-title" class="text-slate-200 font-mono text-[11px]">asset_viewer.html</strong>
+      </div>
+      <div class="flex items-center gap-2">
+        <button onclick="reloadCurrentIframe()" class="text-[11px] text-slate-400 hover:text-slate-200 px-2 py-0.5 rounded hover:bg-slate-800 flex items-center gap-1">
+          🔄 Yenile
+        </button>
+        <a id="btn-open-external" href="asset_viewer.html" target="_blank" class="text-[11px] text-amber-400 hover:text-amber-300 px-2 py-0.5 rounded hover:bg-slate-800 flex items-center gap-1">
+          ↗ Yeni Sekmede Aç
+        </a>
+      </div>
+    </div>
+
+    <!-- Isolated Iframe Container -->
+    <div class="flex-1 w-full h-full relative bg-slate-950">
+      <iframe 
+        id="workbench-frame" 
+        src="asset_viewer.html" 
+        class="w-full h-full border-none block"
+        allow="accelerometer; camera; encrypted-media; gyroscope; picture-in-picture"
+      ></iframe>
+    </div>
+
+  </main>
+
+  <script>
+    // --- Persistence & State Management ---
+    const STORAGE_KEY = 'caw_active_workbench_tool';
+
+    function loadTool(toolPath, btnId) {
+      const iframe = document.getElementById('workbench-frame');
+      iframe.src = toolPath;
+
+      // Update UI title and external link
+      document.getElementById('active-tool-title').innerText = toolPath;
+      document.getElementById('btn-open-external').href = toolPath;
+
+      // Update Active Navigation Highlight
+      document.querySelectorAll('nav button').forEach(btn => {
+        btn.classList.remove('bg-amber-500', 'text-slate-950', 'font-bold');
+        btn.classList.add('text-slate-300', 'hover:bg-slate-800', 'hover:text-slate-100');
+      });
+
+      const activeBtn = document.getElementById(btnId);
+      if (activeBtn) {
+        activeBtn.classList.remove('text-slate-300', 'hover:bg-slate-800', 'hover:text-slate-100');
+        activeBtn.classList.add('bg-amber-500', 'text-slate-950', 'font-bold');
+      }
+
+      // Persist in localStorage
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ toolPath, btnId }));
+    }
+
+    function reloadCurrentIframe() {
+      const iframe = document.getElementById('workbench-frame');
+      iframe.src = iframe.src;
+    }
+
+    // --- State.json Health Check ---
+    function checkStateStatus() {
+      fetch('../specs/state.json')
+        .then(res => {
+          if (!res.ok) throw new Error('State offline');
+          return res.json();
+        })
+        .then(data => {
+          const badge = document.getElementById('state-badge');
+          badge.className = "px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-950 text-emerald-400 border border-emerald-800 flex items-center gap-1";
+          badge.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> ONLINE';
+          document.getElementById('state-meta').innerText = `${Object.keys(data.models || {}).length} models • ${Object.keys(data.assets || {}).length} bakes`;
+        })
+        .catch(() => {
+          const badge = document.getElementById('state-badge');
+          badge.className = "px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-rose-950 text-rose-400 border border-rose-800 flex items-center gap-1";
+          badge.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-rose-400"></span> OFFLINE';
+        });
+    }
+
+    // --- Initialize Workbench Launcher ---
+    window.addEventListener('DOMContentLoaded', () => {
+      checkStateStatus();
+      
+      // Restore last active tool from localStorage
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        try {
+          const { toolPath, btnId } = JSON.parse(saved);
+          loadTool(toolPath, btnId);
+          return;
+        } catch (e) {}
+      }
+
+      // Default: 3D Model & Gizmo Viewer
+      loadTool('asset_viewer.html', 'btn-asset-viewer');
+    });
+  </script>
+</body>
+</html>
