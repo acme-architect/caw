@@ -87,6 +87,13 @@ Köprü pilonları, tabliye ve ayaklar gibi rijit yapılar asla hız gradyanı i
 | **L-HERO**  | Aktif Uçuş / Çatışma Koridoru | $[60, 100]$ | $1.00\times$ | F-14 Tomcat ($Z=80$), düşman uçakları, mermiler, POW |
 | **L-CLOUDS**| Üst İrtifa Bulut Örtüsü & Sis | $[120, 180]$ | $1.15\times$ | Yarı saydam sirrüs bulutları, atmosferik duman |
 
+### 2.3 Çift Modlu Kamera ve Taktik Radar Özellikleri (Dual-Mode Camera & Radar)
+- **RAIL Modu:** Kamera $Y$ ekseninde deterministik hızla ilerler. Oyuncu ekran alanı içinde $W/A/S/D$ ile manevra yapar.
+- **FREE Modu:** Kamera oyuncuyu yaylanma parametresi ($\text{Lerp} = 0.08$) ile takip eder. Oyuncu 360° dönebilir.
+- **Sınır Döngüsü (Boundary Bounce):** Harita $X \in [-380, +380]\text{ m}$ sınırına çarptığında rota tersine çevrilir ($180^\circ$ merkeze yönelim) ve `ZONE BOUNDARY: REVERSING` uyarısı tetiklenir.
+- **Taktik Harita & Savaş Sisi (M Tuşu):** $\%88$ opak neon arayüz; keşfedilen bölgeleri açar (Fog of War), ana rota (Cyan) ve gizli koridoru (Kesikli Sarı) gösterir.
+- **Seviye Dışa Aktarımı:** `stage_01.json` deterministik formatı ile tüm biyom, koordinat ve irtifa limitleri dışa aktarılabilir.
+
 ---
 
 ## 3. STAGE 01 EXECUTION TIMELINE (10-MINUTE MACRO)
@@ -146,3 +153,4 @@ Bir sürümün veya kod icrasının kabul edilebilmesi için aşağıdaki kapıl
 
 4. **GATE-PROJECTION-FIDELITY-01:**
    - 2.5D aksonometrik projeksiyon matrisi, belirtilen formül ($1.5$ yatay, $0.75$ dikey, $1.2$ $Z$ çarpanı) ile kusursuz paralaks ve gölge izdüşümü üretir; rijit nesnelerde yırtılma oluşmaz.
+

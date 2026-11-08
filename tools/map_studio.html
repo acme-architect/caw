@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Carrier Air Wing - Multi-Layer Biome & Map Stage Studio</title>
+  <title>Carrier Air Wing - Map Studio & Neon Diorama Level Workbench</title>
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
@@ -15,177 +15,222 @@
       image-rendering: crisp-edges;
     }
     ::-webkit-scrollbar { width: 5px; height: 5px; }
-    ::-webkit-scrollbar-track { background: #0f172a; }
-    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+    ::-webkit-scrollbar-track { background: #090d16; }
+    ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 3px; }
   </style>
 </head>
-<body class="bg-slate-950 text-slate-100 flex flex-col h-screen overflow-hidden font-sans select-none">
+<body class="bg-[#050811] text-slate-100 flex flex-col h-screen overflow-hidden font-sans select-none">
 
   <!-- Header -->
-  <header class="bg-slate-900 border-b border-slate-800 px-6 py-2.5 flex items-center justify-between shrink-0">
+  <header class="bg-[#0a0f1d] border-b border-cyan-950/60 px-5 py-2 flex items-center justify-between shrink-0 shadow-lg">
     <div class="flex items-center gap-3">
-      <div class="w-3 h-3 rounded-full bg-cyan-400 animate-pulse"></div>
-      <h1 class="text-sm font-bold uppercase tracking-wider">
-        Carrier Air Wing <span class="text-amber-400 font-normal">| Multi-Layer Map & Biome Studio</span>
+      <div class="w-2.5 h-2.5 rounded-full bg-[#00f3ff] shadow-[0_0_8px_#00f3ff] animate-pulse"></div>
+      <h1 class="text-xs font-black tracking-widest uppercase text-slate-100">
+        Carrier Air Wing <span class="text-[#00f3ff] font-normal">| Map Studio & Level Workbench</span>
       </h1>
-      <span class="text-[10px] bg-slate-800 text-slate-400 border border-slate-700 px-2 py-0.5 rounded">Z-Layers • Submarine • Cloud Pass</span>
+      <span class="text-[10px] bg-cyan-950/40 text-cyan-400 border border-cyan-800/50 px-2 py-0.5 rounded font-mono">
+        Minecraft Dungeons Neon Diorama
+      </span>
     </div>
     
+    <!-- Status Telemetry HUD -->
     <div class="flex items-center gap-4 text-xs font-mono">
-      <div>Active Biome: <strong id="hud-biome-name" class="text-amber-400">OPEN OCEAN</strong></div>
-      <span class="text-slate-600">|</span>
-      <div>Vehicle: <strong id="hud-vehicle-name" class="text-cyan-400">F-14 TOMCAT</strong></div>
-      <span class="text-slate-600">|</span>
-      <div>Altitude Z: <strong id="hud-altitude" class="text-emerald-400">80.0 m</strong></div>
+      <div>Biome: <strong id="hud-biome-name" class="text-amber-400 font-bold">OPEN OCEAN</strong></div>
+      <span class="text-slate-700">|</span>
+      <div>Camera: <strong id="hud-cam-mode" class="text-[#00f3ff] font-bold">RAIL</strong></div>
+      <span class="text-slate-700">|</span>
+      <div>Vehicle: <strong id="hud-vehicle-name" class="text-emerald-400 font-bold">F-14 TOMCAT</strong></div>
+      <span class="text-slate-700">|</span>
+      <div>Alt (Z): <strong id="hud-altitude" class="text-cyan-300 font-bold">80.0 m</strong></div>
     </div>
   </header>
 
   <!-- Main Viewport Layout -->
   <div class="flex flex-1 overflow-hidden">
     
-    <!-- Left Panel: Stage Map Navigation & Layer Manager -->
-    <aside class="w-80 bg-slate-900 border-r border-slate-800 flex flex-col justify-between shrink-0">
+    <!-- Left Panel: Stage Navigation, Controls, Layer Stack & Level Export -->
+    <aside class="w-80 bg-[#090e1a] border-r border-slate-800/80 flex flex-col justify-between shrink-0">
       
-      <!-- Stage Map Overview -->
-      <div class="p-3 border-b border-slate-800 space-y-2">
-        <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Harita İlerleme Çubuğu (Stage 01)</div>
-        <div class="relative w-full h-8 bg-slate-950 border border-slate-800 rounded overflow-hidden flex items-center cursor-pointer" onclick="seekMap(event)" id="map-timeline">
+      <!-- Stage Map Timeline Overview -->
+      <div class="p-3 border-b border-slate-800/80 space-y-2">
+        <div class="flex items-center justify-between">
+          <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Görev Koridoru (Stage 01)</span>
+          <span class="text-[10px] font-mono text-cyan-400" id="hud-world-y">Y: 0000m</span>
+        </div>
+        <div class="relative w-full h-7 bg-[#040711] border border-cyan-950 rounded overflow-hidden flex items-center cursor-pointer shadow-inner" onclick="seekMap(event)" id="map-timeline">
           <!-- 4 Biome segments -->
-          <div class="h-full bg-blue-900/40 border-r border-slate-700 flex items-center justify-center text-[9px] text-blue-300 font-bold" style="width: 25%;">AÇIK DENİZ</div>
-          <div class="h-full bg-slate-800/40 border-r border-slate-700 flex items-center justify-center text-[9px] text-amber-300 font-bold" style="width: 30%;">ASMA KÖPRÜ</div>
-          <div class="h-full bg-cyan-950/60 border-r border-slate-700 flex items-center justify-center text-[9px] text-cyan-300 font-bold" style="width: 25%;">DENİZALTI</div>
-          <div class="h-full bg-emerald-950/40 flex items-center justify-center text-[9px] text-emerald-300 font-bold" style="width: 20%;">HANGAR</div>
+          <div class="h-full bg-blue-950/60 border-r border-cyan-900/40 flex items-center justify-center text-[9px] text-cyan-400 font-bold tracking-tight" style="width: 25%;">OKYANUS</div>
+          <div class="h-full bg-slate-900/60 border-r border-cyan-900/40 flex items-center justify-center text-[9px] text-amber-400 font-bold tracking-tight" style="width: 30%;">KÖPRÜ</div>
+          <div class="h-full bg-teal-950/70 border-r border-cyan-900/40 flex items-center justify-center text-[9px] text-teal-300 font-bold tracking-tight" style="width: 25%;">HENDEK/SUB</div>
+          <div class="h-full bg-purple-950/50 flex items-center justify-center text-[9px] text-purple-300 font-bold tracking-tight" style="width: 20%;">HANGAR</div>
           <!-- Scrubber needle -->
-          <div id="map-needle" class="absolute top-0 bottom-0 w-1 bg-amber-400 shadow" style="left: 0%;"></div>
+          <div id="map-needle" class="absolute top-0 bottom-0 w-1 bg-[#00f3ff] shadow-[0_0_8px_#00f3ff]" style="left: 0%;"></div>
         </div>
-        <div class="flex justify-between text-[10px] text-slate-500 font-mono">
-          <span>0 m</span>
-          <span>1500 m</span>
-          <span>3000 m</span>
-          <span>4200 m</span>
-          <span>5000 m</span>
+        <div class="flex justify-between text-[9px] text-slate-500 font-mono">
+          <span>0m</span>
+          <span>1250m</span>
+          <span>2750m</span>
+          <span>4000m</span>
+          <span>5000m</span>
         </div>
       </div>
 
-      <!-- Layer Stack Manager (Toggles) -->
-      <div class="p-3 flex-1 overflow-y-auto space-y-2">
-        <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">Katman Yöneticisi (Layer Stack)</div>
+      <!-- Controls & Layer Stack -->
+      <div class="p-3 flex-1 overflow-y-auto space-y-3">
         
-        <!-- Layer: Clouds -->
-        <label class="flex items-center justify-between p-2 rounded bg-slate-950 border border-slate-800 hover:border-slate-700 cursor-pointer">
-          <div class="flex items-center gap-2">
-            <span class="text-sm">☁️</span>
-            <div>
-              <div class="text-xs font-semibold text-slate-200">L-CLOUDS (Z > 120)</div>
-              <div class="text-[10px] text-slate-500">Yüksek İrtifa Hacimsel Bulutlar</div>
-            </div>
+        <!-- Camera Mode Toggle -->
+        <div>
+          <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 flex justify-between">
+            <span>Kamera & Kontrol Modu</span>
+            <span class="text-[10px] text-amber-400 font-mono">[C Tuşu]</span>
           </div>
-          <input type="checkbox" id="layer-clouds" checked onchange="toggleLayer('clouds', this.checked)" class="w-4 h-4 accent-amber-500">
-        </label>
+          <div class="grid grid-cols-2 gap-1.5 bg-[#050811] p-1 rounded border border-slate-800">
+            <button id="cam-btn-rail" onclick="setCameraMode('rail')" class="py-1.5 rounded text-xs font-bold bg-[#00f3ff] text-slate-950 shadow-[0_0_10px_rgba(0,243,255,0.4)]">
+              RAIL (Raylı)
+            </button>
+            <button id="cam-btn-free" onclick="setCameraMode('free')" class="py-1.5 rounded text-xs font-medium text-slate-400 hover:text-slate-200">
+              FREE (Serbest)
+            </button>
+          </div>
+          <div class="text-[10px] text-slate-400 mt-1 font-mono leading-tight" id="cam-hint">
+            • RAIL: Sahne ileri akar; W/A/S/D ile ekran içi uçuş.
+          </div>
+        </div>
 
-        <!-- Layer: Hero -->
-        <label class="flex items-center justify-between p-2 rounded bg-slate-950 border border-slate-800 hover:border-slate-700 cursor-pointer">
-          <div class="flex items-center gap-2">
-            <span class="text-sm">✈️</span>
-            <div>
-              <div class="text-xs font-semibold text-slate-200">L-HERO (Z = Variable)</div>
-              <div class="text-[10px] text-slate-500">Oyuncu Uçağı / Mini Denizaltı</div>
-            </div>
-          </div>
-          <input type="checkbox" id="layer-hero" checked onchange="toggleLayer('hero', this.checked)" class="w-4 h-4 accent-amber-500">
-        </label>
+        <!-- Tactical Minimap Toggle Button -->
+        <div>
+          <button onclick="toggleTacticalMap()" id="btn-tac-map" class="w-full py-2 bg-gradient-to-r from-cyan-950 to-slate-900 border border-cyan-800 hover:border-cyan-400 rounded flex items-center justify-between px-3 text-xs font-bold text-cyan-300 shadow-[0_0_10px_rgba(0,243,255,0.15)] transition-all">
+            <span class="flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full bg-cyan-400 animate-ping"></span>
+              Taktik Harita & Radar
+            </span>
+            <span class="text-[10px] bg-cyan-900/60 border border-cyan-700/60 px-1.5 py-0.5 rounded font-mono text-cyan-200">[M] Tuşu</span>
+          </button>
+        </div>
 
-        <!-- Layer: Surface Structures -->
-        <label class="flex items-center justify-between p-2 rounded bg-slate-950 border border-slate-800 hover:border-slate-700 cursor-pointer">
-          <div class="flex items-center gap-2">
-            <span class="text-sm">🌉</span>
-            <div>
-              <div class="text-xs font-semibold text-slate-200">L-SURF (0 ≤ Z ≤ 120)</div>
-              <div class="text-[10px] text-slate-500">Köprü Kuleleri, Tabliye, Yat</div>
+        <!-- Layer Stack Manager -->
+        <div class="space-y-1.5 pt-1 border-t border-slate-800/80">
+          <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Diorama Katmanları (Stack)</div>
+          
+          <!-- Layer: Clouds -->
+          <label class="flex items-center justify-between p-1.5 rounded bg-[#050811] border border-slate-800 hover:border-slate-700 cursor-pointer text-xs">
+            <div class="flex items-center gap-2">
+              <span class="text-cyan-400">☁️</span>
+              <span class="font-medium text-slate-200">L-CLOUDS (Z > 120)</span>
             </div>
-          </div>
-          <input type="checkbox" id="layer-surf" checked onchange="toggleLayer('surf', this.checked)" class="w-4 h-4 accent-amber-500">
-        </label>
+            <input type="checkbox" id="layer-clouds" checked onchange="toggleLayer('clouds', this.checked)" class="w-3.5 h-3.5 accent-cyan-500">
+          </label>
 
-        <!-- Layer: Shadows -->
-        <label class="flex items-center justify-between p-2 rounded bg-slate-950 border border-slate-800 hover:border-slate-700 cursor-pointer">
-          <div class="flex items-center gap-2">
-            <span class="text-sm">👥</span>
-            <div>
-              <div class="text-xs font-semibold text-slate-200">L-SHADOW (Z = 0.5)</div>
-              <div class="text-[10px] text-slate-500">45° Zemin İzdüşüm Gölgeleri</div>
+          <!-- Layer: Hero -->
+          <label class="flex items-center justify-between p-1.5 rounded bg-[#050811] border border-slate-800 hover:border-slate-700 cursor-pointer text-xs">
+            <div class="flex items-center gap-2">
+              <span class="text-amber-400">✈️</span>
+              <span class="font-medium text-slate-200">L-HERO (Araç/Pod)</span>
             </div>
-          </div>
-          <input type="checkbox" id="layer-shadow" checked onchange="toggleLayer('shadow', this.checked)" class="w-4 h-4 accent-amber-500">
-        </label>
+            <input type="checkbox" id="layer-hero" checked onchange="toggleLayer('hero', this.checked)" class="w-3.5 h-3.5 accent-cyan-500">
+          </label>
 
-        <!-- Layer: Water Surface -->
-        <label class="flex items-center justify-between p-2 rounded bg-slate-950 border border-slate-800 hover:border-slate-700 cursor-pointer">
-          <div class="flex items-center gap-2">
-            <span class="text-sm">🌊</span>
-            <div>
-              <div class="text-xs font-semibold text-slate-200">L-WATER (Z = 0)</div>
-              <div class="text-[10px] text-slate-500">Okyanus Düzlemi & Izgara</div>
+          <!-- Layer: Surface Structures -->
+          <label class="flex items-center justify-between p-1.5 rounded bg-[#050811] border border-slate-800 hover:border-slate-700 cursor-pointer text-xs">
+            <div class="flex items-center gap-2">
+              <span class="text-emerald-400">🌉</span>
+              <span class="font-medium text-slate-200">L-SURF (Köprü & Taretler)</span>
             </div>
-          </div>
-          <input type="checkbox" id="layer-water" checked onchange="toggleLayer('water', this.checked)" class="w-4 h-4 accent-amber-500">
-        </label>
+            <input type="checkbox" id="layer-surf" checked onchange="toggleLayer('surf', this.checked)" class="w-3.5 h-3.5 accent-cyan-500">
+          </label>
 
-        <!-- Layer: Underworld / Submarine -->
-        <label class="flex items-center justify-between p-2 rounded bg-slate-950 border border-slate-800 hover:border-slate-700 cursor-pointer">
-          <div class="flex items-center gap-2">
-            <span class="text-sm">⚓</span>
-            <div>
-              <div class="text-xs font-semibold text-slate-200">L-SUB (Z < 0)</div>
-              <div class="text-[10px] text-slate-500">Denizaltı Kanyonu & Batıklar</div>
+          <!-- Layer: Shadows -->
+          <label class="flex items-center justify-between p-1.5 rounded bg-[#050811] border border-slate-800 hover:border-slate-700 cursor-pointer text-xs">
+            <div class="flex items-center gap-2">
+              <span class="text-slate-400">👥</span>
+              <span class="font-medium text-slate-200">L-SHADOW (İzdüşüm)</span>
             </div>
+            <input type="checkbox" id="layer-shadow" checked onchange="toggleLayer('shadow', this.checked)" class="w-3.5 h-3.5 accent-cyan-500">
+          </label>
+
+          <!-- Layer: Water Surface -->
+          <label class="flex items-center justify-between p-1.5 rounded bg-[#050811] border border-slate-800 hover:border-slate-700 cursor-pointer text-xs">
+            <div class="flex items-center gap-2">
+              <span class="text-[#00f3ff]">🌊</span>
+              <span class="font-medium text-slate-200">L-WATER (Neon Izgara)</span>
+            </div>
+            <input type="checkbox" id="layer-water" checked onchange="toggleLayer('water', this.checked)" class="w-3.5 h-3.5 accent-cyan-500">
+          </label>
+
+          <!-- Layer: Submarine Trench -->
+          <label class="flex items-center justify-between p-1.5 rounded bg-[#050811] border border-slate-800 hover:border-slate-700 cursor-pointer text-xs">
+            <div class="flex items-center gap-2">
+              <span class="text-teal-400">⚓</span>
+              <span class="font-medium text-slate-200">L-SUB (Derin Hendek)</span>
+            </div>
+            <input type="checkbox" id="layer-sub" checked onchange="toggleLayer('sub', this.checked)" class="w-3.5 h-3.5 accent-cyan-500">
+          </label>
+        </div>
+
+        <!-- Vehicle Morph & Altitude Override -->
+        <div class="pt-2 border-t border-slate-800/80 space-y-1.5">
+          <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">İrtifa & Araç Dönüşümü:</div>
+          <div class="flex gap-1 text-xs">
+            <button onclick="setAltitude(140)" class="flex-1 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded font-semibold text-[10px]">
+              Bulut (140m)
+            </button>
+            <button onclick="setAltitude(80)" class="flex-1 py-1 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded font-bold text-[10px]">
+              Uçuş (80m)
+            </button>
+            <button onclick="setAltitude(-70)" class="flex-1 py-1 bg-teal-800 hover:bg-teal-700 text-teal-200 rounded font-semibold text-[10px]">
+              Dalgıç (-70m)
+            </button>
           </div>
-          <input type="checkbox" id="layer-sub" checked onchange="toggleLayer('sub', this.checked)" class="w-4 h-4 accent-amber-500">
-        </label>
+        </div>
+
       </div>
 
-      <!-- Vehicle Transition Controls -->
-      <div class="p-3 border-t border-slate-800 bg-slate-950 space-y-2">
-        <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">İrtifa & Araç Dönüşümü:</div>
-        <div class="flex gap-1.5 text-xs">
-          <button onclick="setAltitude(140)" class="flex-1 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded font-semibold text-[11px]">
-            ☁️ Bulut (Z=140)
-          </button>
-          <button onclick="setAltitude(80)" class="flex-1 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded font-bold text-[11px]" id="alt-flight-btn">
-            ✈️ Uçuş (Z=80)
-          </button>
-          <button onclick="setAltitude(-70)" class="flex-1 py-1.5 bg-slate-800 hover:bg-cyan-600 text-cyan-300 rounded font-semibold text-[11px]" id="alt-sub-btn">
-            ⚓ Dalgıç (Z=-70)
-          </button>
+      <!-- Footer: Export Stage Parameters -->
+      <div class="p-3 border-t border-slate-800 bg-[#060a14] space-y-2">
+        <button onclick="exportStageParameters()" class="w-full py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs uppercase tracking-wider rounded shadow-[0_0_12px_rgba(245,158,11,0.3)] flex items-center justify-center gap-2 transition-all">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+          Parametreleri İndir (stage_01.json)
+        </button>
+        <div class="text-[9px] text-slate-500 text-center font-mono">
+          DoF = 0 • Deterministik JSON Şartnamesi
         </div>
       </div>
 
     </aside>
 
     <!-- Center Canvas Viewport -->
-    <main class="flex-1 flex flex-col bg-slate-950 overflow-hidden relative">
+    <main class="flex-1 flex flex-col bg-[#050811] overflow-hidden relative">
       
-      <!-- Viewport Header Controls -->
-      <div class="h-10 border-b border-slate-800 bg-slate-900/80 px-4 flex items-center justify-between shrink-0">
-        <div class="flex items-center gap-2 text-xs">
-          <span class="text-slate-400">Harita Akışı:</span>
-          <span class="text-cyan-400 font-mono font-bold">2.5D Diyagonal Y-Koridoru</span>
+      <!-- Viewport Header Strip -->
+      <div class="h-9 border-b border-slate-800/80 bg-[#090e1a]/90 px-4 flex items-center justify-between shrink-0">
+        <div class="flex items-center gap-3 text-xs">
+          <span class="text-slate-400">Koridor:</span>
+          <span class="text-[#00f3ff] font-mono font-bold">2.5D Diyagonal Axonometric (Y-Axis)</span>
+          <span class="text-slate-600">|</span>
+          <span class="text-slate-400">Tuşlar:</span>
+          <span class="text-slate-300 font-mono text-[11px]"><kbd class="bg-slate-800 px-1 py-0.5 rounded border border-slate-700">W/A/S/D</kbd> Uçuş, <kbd class="bg-slate-800 px-1 py-0.5 rounded border border-slate-700">M</kbd> Harita, <kbd class="bg-slate-800 px-1 py-0.5 rounded border border-slate-700">C</kbd> Kamera</span>
         </div>
         <div class="flex items-center gap-4 text-xs">
           <div class="flex items-center gap-2">
             <span class="text-slate-400">Hız:</span>
-            <input type="range" id="speed-slider" min="0" max="8" step="0.5" value="3" oninput="updateSpeed(this.value)" class="w-24 accent-amber-500">
-            <span id="speed-val" class="font-mono text-amber-400 font-bold">3.0 px</span>
+            <input type="range" id="speed-slider" min="0" max="8" step="0.5" value="3.5" oninput="updateSpeed(this.value)" class="w-20 accent-cyan-400">
+            <span id="speed-val" class="font-mono text-cyan-300 font-bold">3.5 px</span>
           </div>
-          <button onclick="togglePause()" id="pause-btn" class="px-2.5 py-0.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 rounded">
+          <button onclick="togglePause()" id="pause-btn" class="px-2 py-0.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 rounded text-xs font-mono">
             ⏸ Durdur
           </button>
         </div>
       </div>
 
       <!-- Canvas Area -->
-      <div class="flex-1 flex items-center justify-center p-2 relative bg-slate-950">
-        <canvas id="view" width="960" height="540" class="border border-slate-800 rounded shadow-2xl pixelated"></canvas>
+      <div class="flex-1 flex items-center justify-center p-2 relative bg-[#040711]">
+        <canvas id="view" width="960" height="540" class="border border-slate-800/80 rounded shadow-2xl pixelated"></canvas>
+
+        <!-- Boundary Reversal Alert HUD Banner -->
+        <div id="boundary-alert" class="absolute top-6 left-1/2 -translate-x-1/2 px-4 py-1.5 bg-rose-950/90 border border-rose-500 text-rose-300 font-mono font-black text-xs uppercase tracking-widest rounded shadow-[0_0_20px_rgba(244,63,94,0.6)] hidden transition-all flex items-center gap-2 animate-bounce">
+          <span class="w-2 h-2 rounded-full bg-rose-500 animate-ping"></span>
+          ZONE BOUNDARY: REVERSING
+        </div>
       </div>
 
     </main>
@@ -200,15 +245,24 @@
 
     // --- State & Map Architecture ---
     const MAP_TOTAL_LENGTH = 5000;
+    const MAP_LATERAL_HALF = 380; // Boundary: X in [-380, +380]
 
     const STATE = {
       paused: false,
-      speed: 3.0,
+      speed: 3.5,
+      cameraMode: 'rail', // 'rail' | 'free'
       cameraY: 0,
+      cameraX: 0,
       targetAltitudeZ: 80,
       heroZ: 80,
-      heroX: 0, // lateral position
+      heroX: 0,
+      heroY: 0,
+      heroHeading: Math.PI / 4, // 45 deg default (NE diagonal along Y-corridor)
       time: 0,
+      boundaryAlertTimer: 0,
+      showTacticalMap: false,
+      // Fog of War Discovery Grid (100 cells along Y, 20 cells along X)
+      fogGrid: new Uint8Array(100 * 20),
       // Layer Toggles
       layers: {
         clouds: true,
@@ -219,6 +273,65 @@
         sub: true
       }
     };
+
+    // Keyboard Input State
+    const KEYS = {
+      w: false, a: false, s: false, d: false,
+      ArrowUp: false, ArrowLeft: false, ArrowDown: false, ArrowRight: false
+    };
+
+    window.addEventListener('keydown', (e) => {
+      const k = e.key.toLowerCase();
+      if (k === 'w' || k === 'arrowup') KEYS.w = true;
+      if (k === 's' || k === 'arrowdown') KEYS.s = true;
+      if (k === 'a' || k === 'arrowleft') KEYS.a = true;
+      if (k === 'd' || k === 'arrowright') KEYS.d = true;
+
+      if (k === 'm') toggleTacticalMap();
+      if (k === 'c') setCameraMode(STATE.cameraMode === 'rail' ? 'free' : 'rail');
+      if (k === ' ') togglePause();
+    });
+
+    window.addEventListener('keyup', (e) => {
+      const k = e.key.toLowerCase();
+      if (k === 'w' || k === 'arrowup') KEYS.w = false;
+      if (k === 's' || k === 'arrowdown') KEYS.s = false;
+      if (k === 'a' || k === 'arrowleft') KEYS.a = false;
+      if (k === 'd' || k === 'arrowright') KEYS.d = false;
+    });
+
+    function setCameraMode(mode) {
+      STATE.cameraMode = mode;
+      const isRail = mode === 'rail';
+      const btnRail = document.getElementById('cam-btn-rail');
+      const btnFree = document.getElementById('cam-btn-free');
+      const hudCam = document.getElementById('hud-cam-mode');
+      const hint = document.getElementById('cam-hint');
+
+      if (isRail) {
+        btnRail.className = "py-1.5 rounded text-xs font-bold bg-[#00f3ff] text-slate-950 shadow-[0_0_10px_rgba(0,243,255,0.4)]";
+        btnFree.className = "py-1.5 rounded text-xs font-medium text-slate-400 hover:text-slate-200";
+        hudCam.innerText = "RAIL";
+        hudCam.className = "text-[#00f3ff] font-bold";
+        hint.innerHTML = "• RAIL: Sahne ileri akar; W/A/S/D ile ekran içi uçuş.";
+      } else {
+        btnFree.className = "py-1.5 rounded text-xs font-bold bg-amber-400 text-slate-950 shadow-[0_0_10px_rgba(245,158,11,0.4)]";
+        btnRail.className = "py-1.5 rounded text-xs font-medium text-slate-400 hover:text-slate-200";
+        hudCam.innerText = "FREE";
+        hudCam.className = "text-amber-400 font-bold";
+        hint.innerHTML = "• FREE: Kamera uçağı yumuşak yaylanmayla takip eder; 360° serbest uçuş.";
+      }
+    }
+
+    function toggleTacticalMap() {
+      STATE.showTacticalMap = !STATE.showTacticalMap;
+      const btn = document.getElementById('btn-tac-map');
+      if (STATE.showTacticalMap) {
+        btn.classList.add('border-cyan-400', 'bg-cyan-900/40');
+      } else {
+        btn.classList.remove('border-cyan-400', 'bg-cyan-900/40');
+      }
+    }
 
     function updateSpeed(v) {
       STATE.speed = parseFloat(v);
@@ -243,33 +356,47 @@
       const clickX = e.clientX - rect.left;
       const ratio = Math.max(0, Math.min(1, clickX / rect.width));
       STATE.cameraY = ratio * MAP_TOTAL_LENGTH;
+      STATE.heroY = STATE.cameraY + 40;
     }
 
-    // --- 2.5D Orthogonal Projection Matrix ---
-    function project(x, y, z, camY) {
+    // --- Fog of War Grid Update ---
+    function updateFogOfWar(hx, hy) {
+      const col = Math.floor(((hx + MAP_LATERAL_HALF) / (MAP_LATERAL_HALF * 2)) * 20);
+      const row = Math.floor((hy / MAP_TOTAL_LENGTH) * 100);
+      // Reveal 3x3 radius
+      for (let r = Math.max(0, row - 2); r <= Math.min(99, row + 2); r++) {
+        for (let c = Math.max(0, col - 2); c <= Math.min(19, col + 2); c++) {
+          STATE.fogGrid[r * 20 + c] = 1;
+        }
+      }
+    }
+
+    // --- 2.5D Orthogonal Projection Matrix with CameraX and CameraY ---
+    function project(x, y, z, camX, camY) {
+      const relX = x - camX;
       const relY = y - camY;
-      const sx = W / 2 + (x - relY) * 1.5;
-      const sy = H / 2 + (x + relY) * 0.75 - z * 1.2;
+      const sx = W / 2 + (relX - relY) * 1.5;
+      const sy = H / 2 + (relX + relY) * 0.75 - z * 1.2;
       return { x: sx, y: sy };
     }
 
-    function drawPoly(c, pts, fill, stroke) {
+    function drawPoly(c, pts, fill, stroke, lineWidth = 1) {
       if (!pts || pts.length < 3) return;
       c.beginPath();
       c.moveTo(pts[0].x, pts[0].y);
       for (let i = 1; i < pts.length; i++) c.lineTo(pts[i].x, pts[i].y);
       c.closePath();
       if (fill) { c.fillStyle = fill; c.fill(); }
-      if (stroke) { c.strokeStyle = stroke; c.lineWidth = 1; c.stroke(); }
+      if (stroke) { c.strokeStyle = stroke; c.lineWidth = lineWidth; c.stroke(); }
     }
 
     // --- PROCEDURAL CLOUDS ---
     const CLOUD_PARTICLES = [];
-    for (let i = 0; i < 18; i++) {
+    for (let i = 0; i < 22; i++) {
       CLOUD_PARTICLES.push({
-        x: (Math.random() - 0.5) * 600,
+        x: (Math.random() - 0.5) * 700,
         y: Math.random() * MAP_TOTAL_LENGTH,
-        radius: 40 + Math.random() * 60,
+        radius: 45 + Math.random() * 65,
         opacity: 0.25 + Math.random() * 0.35
       });
     }
@@ -277,26 +404,112 @@
     // --- MAIN GAME LOOP ---
     function render() {
       if (!STATE.paused) {
-        STATE.cameraY = (STATE.cameraY + STATE.speed) % MAP_TOTAL_LENGTH;
         STATE.time += 0.04;
-        // Smooth Altitude Transition
         STATE.heroZ += (STATE.targetAltitudeZ - STATE.heroZ) * 0.08;
+
+        // Player Flight Dynamics & Camera Modes
+        if (STATE.cameraMode === 'rail') {
+          // RAIL MODE: Camera moves forward along corridor at fixed speed
+          STATE.cameraY = (STATE.cameraY + STATE.speed) % MAP_TOTAL_LENGTH;
+          STATE.cameraX += (0 - STATE.cameraX) * 0.08; // Return cameraX to corridor center
+
+          // Hero moves relative to camera viewport
+          const moveSpeed = 4.2;
+          if (KEYS.a) STATE.heroX -= moveSpeed;
+          if (KEYS.d) STATE.heroX += moveSpeed;
+          if (KEYS.w) STATE.heroY += moveSpeed + STATE.speed * 0.5;
+          if (KEYS.s) STATE.heroY -= moveSpeed;
+
+          // Rail bounds: Keep hero within screen corridor [-280, 280]
+          STATE.heroX = Math.max(-280, Math.min(280, STATE.heroX));
+          // Keep hero near camera forward anchor
+          const relHeroY = STATE.heroY - STATE.cameraY;
+          if (relHeroY < -120) STATE.heroY = STATE.cameraY - 120;
+          if (relHeroY > 220) STATE.heroY = STATE.cameraY + 220;
+
+          // Align heading along diagonal
+          STATE.heroHeading = Math.PI / 4;
+
+        } else {
+          // FREE MODE: 360-degree rotation and full flight
+          const turnRate = 0.06;
+          const thrust = 5.0;
+
+          if (KEYS.a) STATE.heroHeading -= turnRate;
+          if (KEYS.d) STATE.heroHeading += turnRate;
+
+          let speedMod = 1.0;
+          if (KEYS.w) speedMod = 1.5;
+          if (KEYS.s) speedMod = 0.5;
+
+          const vx = Math.cos(STATE.heroHeading) * thrust * speedMod;
+          const vy = Math.sin(STATE.heroHeading) * thrust * speedMod;
+
+          STATE.heroX += vx;
+          STATE.heroY += vy;
+
+          // Sınır Döngüsü (Boundary Bounce/Turn)
+          let triggeredBoundary = false;
+          if (STATE.heroX > MAP_LATERAL_HALF) {
+            STATE.heroX = MAP_LATERAL_HALF - 2;
+            STATE.heroHeading = Math.PI - STATE.heroHeading;
+            triggeredBoundary = true;
+          } else if (STATE.heroX < -MAP_LATERAL_HALF) {
+            STATE.heroX = -MAP_LATERAL_HALF + 2;
+            STATE.heroHeading = Math.PI - STATE.heroHeading;
+            triggeredBoundary = true;
+          }
+          if (STATE.heroY > MAP_TOTAL_LENGTH) {
+            STATE.heroY = MAP_TOTAL_LENGTH - 2;
+            STATE.heroHeading = -STATE.heroHeading;
+            triggeredBoundary = true;
+          } else if (STATE.heroY < 0) {
+            STATE.heroY = 2;
+            STATE.heroHeading = -STATE.heroHeading;
+            triggeredBoundary = true;
+          }
+
+          if (triggeredBoundary) {
+            STATE.boundaryAlertTimer = 45; // ~0.75 sec alert banner
+          }
+
+          // Camera smoothly tracks Hero (Lerp 0.08)
+          STATE.cameraX += (STATE.heroX - STATE.cameraX) * 0.08;
+          STATE.cameraY += (STATE.heroY - 40 - STATE.cameraY) * 0.08;
+        }
+
+        // Keep cameraY wrapped
+        if (STATE.cameraY < 0) STATE.cameraY += MAP_TOTAL_LENGTH;
+        if (STATE.cameraY >= MAP_TOTAL_LENGTH) STATE.cameraY -= MAP_TOTAL_LENGTH;
+
+        // Update Fog of War
+        updateFogOfWar(STATE.heroX, STATE.heroY);
       }
 
-      // Update Map Timeline Scrubber
-      const progressRatio = STATE.cameraY / MAP_TOTAL_LENGTH;
+      // Handle Boundary Alert Timer
+      const alertElem = document.getElementById('boundary-alert');
+      if (STATE.boundaryAlertTimer > 0) {
+        STATE.boundaryAlertTimer--;
+        alertElem.classList.remove('hidden');
+      } else {
+        alertElem.classList.add('hidden');
+      }
+
+      // Update Map Timeline Scrubber & Telemetry
+      const progressRatio = (STATE.cameraY % MAP_TOTAL_LENGTH) / MAP_TOTAL_LENGTH;
       document.getElementById('map-needle').style.left = `${(progressRatio * 100).toFixed(1)}%`;
+      document.getElementById('hud-world-y').innerText = `Y: ${Math.floor(STATE.cameraY).toString().padStart(4, '0')}m`;
 
       // Determine Current Biome
       let biomeName = "OPEN OCEAN";
       let vehicleName = "F-14 TOMCAT";
-      if (STATE.cameraY > 4200) {
+      if (STATE.cameraY > 4000) {
         biomeName = "UNDERGROUND HANGAR";
         vehicleName = "STEALTH DRONE";
-      } else if (STATE.cameraY > 3000) {
+      } else if (STATE.cameraY > 2750) {
         biomeName = "SUBMARINE TRENCH";
         vehicleName = "DEEP SUBMERSIBLE";
-      } else if (STATE.cameraY > 1500) {
+      } else if (STATE.cameraY > 1250) {
         biomeName = "SUSPENSION BRIDGE";
         vehicleName = "F-14 TOMCAT";
       }
@@ -312,58 +525,67 @@
       document.getElementById('hud-vehicle-name').innerText = vehicleName;
       document.getElementById('hud-altitude').innerText = `${STATE.heroZ.toFixed(1)} m`;
 
-      // 1. Clear Screen
-      ctx.fillStyle = (STATE.heroZ < 0) ? '#02101e' : '#051120';
+      // 1. Clear Screen with Minecraft Dungeons Deep Atmosphere Palette
+      ctx.fillStyle = (STATE.heroZ < 0) ? '#020b17' : '#040915';
       ctx.fillRect(0, 0, W, H);
+
+      const cx = STATE.cameraX;
+      const cy = STATE.cameraY;
 
       // --- KATMAN 0: L-SUB (DENİZALTI & YER ALTI TÜNELLERİ, Z < 0) ---
       if (STATE.layers.sub) {
-        renderSubmarineTrenchLayer(ctx, STATE.cameraY, STATE.time);
+        renderSubmarineTrenchLayer(ctx, cx, cy, STATE.time);
       }
 
-      // --- KATMAN 1: L-WATER (SU YÜZEYİ & IZGARA, Z = 0) ---
+      // --- KATMAN 1: L-WATER (NEON DIORAMA SU YÜZEYİ & IZGARA, Z = 0) ---
       if (STATE.layers.water) {
-        renderWaterLayer(ctx, STATE.cameraY, STATE.time, STATE.heroZ);
+        renderNeonWaterLayer(ctx, cx, cy, STATE.time, STATE.heroZ);
       }
 
       // --- KATMAN 2: L-SHADOW (GÖLGELER, Z = 0.5) ---
       if (STATE.layers.shadow && STATE.heroZ >= 0) {
-        renderShadowLayer(ctx, STATE.cameraY, STATE.time, STATE.heroZ);
+        renderShadowLayer(ctx, cx, cy, STATE.time, STATE.heroZ);
       }
 
-      // --- KATMAN 3: L-SURF (KÖPRÜ TABLİYESİ, KULELER, YAT, 0 ≤ Z ≤ 120) ---
+      // --- KATMAN 3: L-SURF (KÖPRÜ TABLİYESİ, ANTRASİT PİLONLAR, NEON ŞERİTLER, 0 ≤ Z ≤ 120) ---
       if (STATE.layers.surf) {
-        renderSurfaceStructures(ctx, STATE.cameraY, STATE.time);
+        renderSurfaceStructures(ctx, cx, cy, STATE.time);
       }
 
-      // --- KATMAN 4: L-HERO (OYUNCU ARACI / DENİZALTI) ---
+      // --- KATMAN 4: L-HERO (OYUNCU ARACI / DENİZALTI + İTKİ PARILTI) ---
       if (STATE.layers.hero) {
-        renderHeroVehicle(ctx, STATE.cameraY, STATE.heroZ, STATE.time);
+        renderHeroVehicle(ctx, cx, cy, STATE.heroZ, STATE.time);
       }
 
       // --- KATMAN 5: L-CLOUDS (YÜKSEK İRTİFA BULUT GEÇİŞLERİ, Z > 120) ---
       if (STATE.layers.clouds) {
-        renderCloudPass(ctx, STATE.cameraY, STATE.time, STATE.heroZ);
+        renderCloudPass(ctx, cx, cy, STATE.time, STATE.heroZ);
+      }
+
+      // --- KATMAN 6: TAKTİK MİNİMAP & SAVAŞ SİSİ (AÇIKSA CANVAS ORTASINDA AÇILIR) ---
+      if (STATE.showTacticalMap) {
+        renderCenterTacticalMap(ctx);
       }
 
       requestAnimationFrame(render);
     }
 
     // --- 1. L-SUB: SU ALTI KANYONU VE YER ALTI TÜNELLERİ (Z < 0) ---
-    function renderSubmarineTrenchLayer(c, camY, t) {
+    function renderSubmarineTrenchLayer(c, camX, camY, t) {
       c.save();
-      // Underwater Deep Canyon Walls (between Y = 2800 and 4200)
-      const trenchStartY = 2800;
-      const trenchEndY = 4200;
+      const trenchStartY = 2750;
+      const trenchEndY = 4000;
 
-      // Draw Subsea Trenches (Z = -120 to -60)
       for (let y = trenchStartY; y <= trenchEndY; y += 120) {
-        const pL0 = project(-180, y, -120, camY);
-        const pL1 = project(-90, y + 100, -60, camY);
-        const pR0 = project(180, y, -120, camY);
-        const pR1 = project(90, y + 100, -60, camY);
+        if (Math.abs(y - camY) > 800) continue;
 
-        c.fillStyle = '#01192b';
+        const pL0 = project(-220, y, -120, camX, camY);
+        const pL1 = project(-90, y + 100, -60, camX, camY);
+        const pR1 = project(90, y + 100, -60, camX, camY);
+        const pR0 = project(220, y, -120, camX, camY);
+
+        // Blocky Trench Slabs (Minecraft Dungeons Basalt/Deepslate Style)
+        c.fillStyle = '#031424';
         c.beginPath();
         c.moveTo(pL0.x, pL0.y);
         c.lineTo(pL1.x, pL1.y);
@@ -371,217 +593,341 @@
         c.lineTo(pR0.x, pR0.y);
         c.closePath();
         c.fill();
-        c.strokeStyle = '#023859';
-        c.lineWidth = 1;
+        c.strokeStyle = '#05314d';
+        c.lineWidth = 1.5;
         c.stroke();
+
+        // Neon Cyan Thermal Vents along trench floor
+        const ventP = project(0, y + 50, -118, camX, camY);
+        c.fillStyle = '#00f3ff';
+        c.shadowColor = '#00f3ff';
+        c.shadowBlur = 10;
+        c.beginPath();
+        c.arc(ventP.x, ventP.y, 3 + Math.sin(t * 4 + y) * 1.5, 0, Math.PI * 2);
+        c.fill();
+        c.shadowBlur = 0;
       }
 
-      // Submarine Sonar / Bubble Trails if submerged
+      // Bioluminescent / Sonar Particles if Submerged
       if (STATE.heroZ < 0) {
-        c.fillStyle = 'rgba(56, 189, 248, 0.25)';
-        for (let b = 0; b < 12; b++) {
-          const bx = Math.sin(t * 2 + b) * 30;
-          const by = camY + 40 - b * 15;
-          const bp = project(bx, by, STATE.heroZ + Math.sin(t + b) * 8, camY);
+        for (let b = 0; b < 16; b++) {
+          const bx = Math.sin(t * 1.5 + b) * 80;
+          const by = camY + 80 - b * 20;
+          const bp = project(bx, by, STATE.heroZ + Math.sin(t + b) * 10, camX, camY);
+          c.fillStyle = 'rgba(0, 243, 255, 0.45)';
           c.beginPath();
-          c.arc(bp.x, bp.y, 2.5 + (b % 3), 0, Math.PI * 2);
+          c.arc(bp.x, bp.y, 2 + (b % 3), 0, Math.PI * 2);
           c.fill();
         }
       }
       c.restore();
     }
 
-    // --- 2. L-WATER: SU YÜZEYİ & RİTMİK IZGARA (Z = 0) ---
-    function renderWaterLayer(c, camY, t, heroZ) {
+    // --- 2. L-WATER: NEON DIORAMA SU YÜZEYİ & IZGARA (MINECRAFT DUNGEONS STİLİ) ---
+    function renderNeonWaterLayer(c, camX, camY, t, heroZ) {
       c.save();
-      const alphaWater = (heroZ < 0) ? 0.35 : 0.85; // Su altına girince su yüzeyi şeffaflaşır
+      const alphaWater = (heroZ < 0) ? 0.35 : 0.92;
 
-      // Water Plane
+      // Deep Midnight Navy Gradient
       const grad = c.createLinearGradient(0, 0, 0, H);
-      grad.addColorStop(0, `rgba(10, 35, 66, ${alphaWater})`);
-      grad.addColorStop(0.5, `rgba(12, 48, 88, ${alphaWater})`);
-      grad.addColorStop(1, `rgba(7, 24, 44, ${alphaWater})`);
+      grad.addColorStop(0, `rgba(5, 14, 32, ${alphaWater})`);
+      grad.addColorStop(0.5, `rgba(7, 21, 46, ${alphaWater})`);
+      grad.addColorStop(1, `rgba(4, 10, 24, ${alphaWater})`);
       c.fillStyle = grad;
       c.fillRect(0, 0, W, H);
 
-      // 2.5D Diagonal Grid (60 unit grid)
-      const gridSize = 60;
-      const startY = Math.floor(camY / gridSize) * gridSize - gridSize * 4;
-      const endY = startY + gridSize * 18;
+      // Blocky/Isometric Water Ripple Grid with Neon Cyan Reflection Lines ('#00f3ff')
+      const gridSize = 70;
+      const startY = Math.floor(camY / gridSize) * gridSize - gridSize * 5;
+      const endY = startY + gridSize * 20;
 
-      c.lineWidth = 1;
-      for (let x = -360; x <= 360; x += gridSize) {
-        const pA = project(x, startY, 0, camY);
-        const pB = project(x, endY, 0, camY);
-        c.strokeStyle = (x === 0) ? 'rgba(56, 189, 248, 0.3)' : 'rgba(30, 58, 95, 0.2)';
+      // Longitudinal Lines
+      for (let x = -MAP_LATERAL_HALF; x <= MAP_LATERAL_HALF; x += gridSize) {
+        const pA = project(x, startY, 0, camX, camY);
+        const pB = project(x, endY, 0, camX, camY);
+        const isCenter = Math.abs(x) < 5;
+
+        c.strokeStyle = isCenter ? 'rgba(0, 243, 255, 0.45)' : 'rgba(14, 52, 94, 0.35)';
+        c.lineWidth = isCenter ? 2 : 1;
         c.beginPath();
         c.moveTo(pA.x, pA.y);
         c.lineTo(pB.x, pB.y);
         c.stroke();
       }
+
+      // Latitudinal Rhythmic Wave Blocks
       for (let y = startY; y <= endY; y += gridSize) {
-        const pA = project(-360, y, 0, camY);
-        const pB = project(360, y, 0, camY);
-        c.strokeStyle = 'rgba(30, 58, 95, 0.2)';
+        const pA = project(-MAP_LATERAL_HALF, y, 0, camX, camY);
+        const pB = project(MAP_LATERAL_HALF, y, 0, camX, camY);
+        c.strokeStyle = 'rgba(14, 52, 94, 0.35)';
+        c.lineWidth = 1;
         c.beginPath();
         c.moveTo(pA.x, pA.y);
         c.lineTo(pB.x, pB.y);
         c.stroke();
+
+        // High-contrast Neon Cyan Reflection Dash (Minecraft Dungeons water specularity)
+        const wavePulse = (Math.sin(t * 3 + y * 0.05) + 1) * 0.5;
+        if (wavePulse > 0.6) {
+          const rx = Math.sin(y * 11) * 160;
+          const rP0 = project(rx - 25, y, 0.2, camX, camY);
+          const rP1 = project(rx + 25, y, 0.2, camX, camY);
+          c.strokeStyle = `rgba(0, 243, 255, ${wavePulse * 0.6})`;
+          c.lineWidth = 2;
+          c.beginPath();
+          c.moveTo(rP0.x, rP0.y);
+          c.lineTo(rP1.x, rP1.y);
+          c.stroke();
+        }
       }
+
+      // Neon Map Corridor Outer Boundary Barriers
+      for (const bx of [-MAP_LATERAL_HALF, MAP_LATERAL_HALF]) {
+        const p0 = project(bx, startY, 0, camX, camY);
+        const p1 = project(bx, endY, 0, camX, camY);
+        c.strokeStyle = '#f43f5e';
+        c.shadowColor = '#f43f5e';
+        c.shadowBlur = 8;
+        c.lineWidth = 2;
+        c.setLineDash([8, 8]);
+        c.beginPath();
+        c.moveTo(p0.x, p0.y);
+        c.lineTo(p1.x, p1.y);
+        c.stroke();
+        c.setLineDash([]);
+        c.shadowBlur = 0;
+      }
+
       c.restore();
     }
 
     // --- 3. L-SHADOW: 45° İZDÜŞÜM GÖLGELERİ (Z = 0.5) ---
-    function renderShadowLayer(c, camY, t, heroZ) {
+    function renderShadowLayer(c, camX, camY, t, heroZ) {
       c.save();
-      c.fillStyle = 'rgba(0, 0, 0, 0.38)';
+      c.fillStyle = 'rgba(1, 4, 10, 0.6)';
 
-      // Hero Shadow (Scales and offsets with Hero Altitude Z)
       const shadowOffset = heroZ * 0.45;
-      const heroShadowP = project(STATE.heroX + shadowOffset, camY + shadowOffset, 0, camY);
-      const sScale = Math.max(0.4, 1.0 - heroZ / 250);
+      const heroShadowP = project(STATE.heroX + shadowOffset, STATE.heroY + shadowOffset, 0, camX, camY);
+      const sScale = Math.max(0.35, 1.0 - heroZ / 260);
+
       c.beginPath();
-      c.ellipse(heroShadowP.x, heroShadowP.y, 32 * sScale, 12 * sScale, -0.4, 0, Math.PI * 2);
+      c.ellipse(heroShadowP.x, heroShadowP.y, 36 * sScale, 14 * sScale, -0.4, 0, Math.PI * 2);
       c.fill();
       c.restore();
     }
 
-    // --- 4. L-SURF: KÖPRÜ TABLİYESİ, PİLONLAR VE YAT (0 ≤ Z ≤ 120) ---
-    function renderSurfaceStructures(c, camY, t) {
+    // --- 4. L-SURF: KÖPRÜ TABLİYESİ, ANTRASİT PİLONLAR VE NEON UYARI ŞERİTLERİ ---
+    function renderSurfaceStructures(c, camX, camY, t) {
       c.save();
-
-      // Only draw suspension bridge in its designated map segment (Y = 1400 to 3200)
-      const bridgeStart = 1400;
-      const bridgeEnd = 3200;
-      const pylonSpacing = 420;
+      const bridgeStart = 1250;
+      const bridgeEnd = 2750;
+      const pylonSpacing = 360;
 
       for (let py = bridgeStart; py <= bridgeEnd; py += pylonSpacing) {
-        if (Math.abs(py - camY) > 800) continue; // Culling
+        if (Math.abs(py - camY) > 850) continue; // Culling
 
         const DECK_Z = 60;
         const TOWER_Z = 160;
-        const DECK_W = 34;
+        const DECK_W = 42;
 
-        // Deck Segment
-        const t0 = project(-DECK_W / 2, py, DECK_Z, camY);
-        const t1 = project(DECK_W / 2, py, DECK_Z, camY);
-        const t2 = project(DECK_W / 2, py + pylonSpacing, DECK_Z, camY);
-        const t3 = project(-DECK_W / 2, py + pylonSpacing, DECK_Z, camY);
-        drawPoly(c, [t0, t1, t2, t3], '#374151', '#4b5563');
+        // Blocky Deck Segment (Dark Anthracite Concrete: '#1f242e')
+        const t0 = project(-DECK_W / 2, py, DECK_Z, camX, camY);
+        const t1 = project(DECK_W / 2, py, DECK_Z, camX, camY);
+        const t2 = project(DECK_W / 2, py + pylonSpacing, DECK_Z, camX, camY);
+        const t3 = project(-DECK_W / 2, py + pylonSpacing, DECK_Z, camX, camY);
+        drawPoly(c, [t0, t1, t2, t3], '#181e29', '#2d3748', 1.5);
 
-        // Pylons (Towers)
-        for (const px of [-DECK_W / 2 - 8, DECK_W / 2 + 8]) {
-          const b0 = project(px - 5, py - 6, DECK_Z, camY);
-          const b1 = project(px + 5, py - 6, DECK_Z, camY);
-          const b2 = project(px + 5, py - 6, TOWER_Z, camY);
-          const b3 = project(px - 5, py - 6, TOWER_Z, camY);
-          drawPoly(c, [b0, b1, b2, b3], '#cbd5e1', '#94a3b8');
+        // Deck Center Yellow/Amber Neon Warning Strip
+        const line0 = project(0, py, DECK_Z + 0.5, camX, camY);
+        const line1 = project(0, py + pylonSpacing, DECK_Z + 0.5, camX, camY);
+        c.strokeStyle = '#f59e0b';
+        c.shadowColor = '#f59e0b';
+        c.shadowBlur = 6;
+        c.lineWidth = 2;
+        c.beginPath();
+        c.moveTo(line0.x, line0.y);
+        c.lineTo(line1.x, line1.y);
+        c.stroke();
+        c.shadowBlur = 0;
 
-          // Tower Warning Beacon
-          const beaconP = project(px, py, TOWER_Z + 3, camY);
-          c.fillStyle = Math.floor(t * 3) % 2 === 0 ? '#ef4444' : '#7f1d1d';
+        // Blocky Pylons (Minecraft Dungeons Anthracite Pillars + Neon Amber Stripes)
+        for (const px of [-DECK_W / 2 - 10, DECK_W / 2 + 10]) {
+          // Tower Base to Top Box
+          const b0 = project(px - 6, py - 6, DECK_Z, camX, camY);
+          const b1 = project(px + 6, py - 6, DECK_Z, camX, camY);
+          const b2 = project(px + 6, py - 6, TOWER_Z, camX, camY);
+          const b3 = project(px - 6, py - 6, TOWER_Z, camX, camY);
+          drawPoly(c, [b0, b1, b2, b3], '#0f172a', '#334155', 2);
+
+          // Neon Cyan Hazard Stripes on Pylon Body
+          for (let sz = DECK_Z + 25; sz < TOWER_Z - 10; sz += 35) {
+            const sA = project(px - 5, py - 6, sz, camX, camY);
+            const sB = project(px + 5, py - 6, sz, camX, camY);
+            c.strokeStyle = '#00f3ff';
+            c.shadowColor = '#00f3ff';
+            c.shadowBlur = 8;
+            c.lineWidth = 3;
+            c.beginPath();
+            c.moveTo(sA.x, sA.y);
+            c.lineTo(sB.x, sB.y);
+            c.stroke();
+            c.shadowBlur = 0;
+          }
+
+          // Tower Warning Beacon (Blinking Neon Red/Amber)
+          const beaconP = project(px, py - 6, TOWER_Z + 4, camX, camY);
+          const isBlink = Math.floor(t * 4) % 2 === 0;
+          c.fillStyle = isBlink ? '#ff0055' : '#7f0022';
+          c.shadowColor = isBlink ? '#ff0055' : 'transparent';
+          c.shadowBlur = isBlink ? 12 : 0;
           c.beginPath();
-          c.arc(beaconP.x, beaconP.y, 3, 0, Math.PI * 2);
+          c.arc(beaconP.x, beaconP.y, 4, 0, Math.PI * 2);
           c.fill();
+          c.shadowBlur = 0;
+
+          // Suspension Cable Lines (Neon Cyan Accented)
+          const cableP0 = project(px, py - 6, TOWER_Z - 4, camX, camY);
+          const cableP1 = project(px, py + pylonSpacing * 0.5, DECK_Z + 2, camX, camY);
+          c.strokeStyle = 'rgba(0, 243, 255, 0.4)';
+          c.lineWidth = 1.5;
+          c.beginPath();
+          c.moveTo(cableP0.x, cableP0.y);
+          c.lineTo(cableP1.x, cableP1.y);
+          c.stroke();
         }
       }
       c.restore();
     }
 
-    // --- 5. L-HERO: OYUNCU ARACI VEYA DENİZALTI ---
-    function renderHeroVehicle(c, camY, heroZ, t) {
+    // --- 5. L-HERO: OYUNCU ARACI VEYA DENİZALTI + NEON EGZOZ PARILTISI ---
+    function renderHeroVehicle(c, camX, camY, heroZ, t) {
       c.save();
-      const heroPos = project(STATE.heroX, camY + 40, heroZ, camY);
+      const heroPos = project(STATE.heroX, STATE.heroY, heroZ, camX, camY);
 
       if (heroZ < 0) {
-        // --- SU ALTI MODU: MİNİ DENİZALTI (DEEP SUB POD) ---
+        // --- SU ALTI MODU: MİNİ DENİZALTI PODU (NEON CYAN & YELLOW) ---
         c.translate(heroPos.x, heroPos.y);
-        // Submarine Oval Hull (Yellow/Navy Deep Dive)
-        c.fillStyle = '#f59e0b'; // High-visibility submarine yellow
+        c.rotate(STATE.heroHeading - Math.PI / 4);
+
+        // Submarine Oval Hull (Vibrant Submarine Gold '#f59e0b')
+        c.fillStyle = '#f59e0b';
         c.beginPath();
-        c.ellipse(0, 0, 24, 10, -0.2, 0, Math.PI * 2);
+        c.ellipse(0, 0, 26, 11, 0, 0, Math.PI * 2);
         c.fill();
         c.strokeStyle = '#b45309';
+        c.lineWidth = 2;
+        c.stroke();
+
+        // Observation Bubble Window (Neon Cyan Glow)
+        c.fillStyle = '#00f3ff';
+        c.shadowColor = '#00f3ff';
+        c.shadowBlur = 10;
+        c.beginPath();
+        c.arc(15, 0, 6, 0, Math.PI * 2);
+        c.fill();
+        c.shadowBlur = 0;
+
+        // Propeller Thruster Bubbles & Neon Wash
+        c.fillStyle = 'rgba(0, 243, 255, 0.7)';
+        c.shadowColor = '#00f3ff';
+        c.shadowBlur = 8;
+        c.beginPath();
+        c.arc(-26, 0, 5 + Math.sin(t * 6) * 2, 0, Math.PI * 2);
+        c.fill();
+        c.shadowBlur = 0;
+
+      } else {
+        // --- HAVA MODU: F-14 TOMCAT (BLOCKY & NEON HIGHLIGHTS) ---
+        c.translate(heroPos.x, heroPos.y);
+        c.rotate(STATE.heroHeading - Math.PI / 4);
+
+        // Fuselage Body (Clean Solid Diorama Gray/Slate: '#cbd5e1')
+        c.fillStyle = '#cbd5e1';
+        c.beginPath();
+        c.moveTo(22, 0);   // Nose
+        c.lineTo(6, 9);
+        c.lineTo(-18, 11); // Tail
+        c.lineTo(-18, -11);
+        c.lineTo(6, -9);
+        c.closePath();
+        c.fill();
+        c.strokeStyle = '#334155';
         c.lineWidth = 1.5;
         c.stroke();
 
-        // Observation Bubble Window (Cyan Glass)
-        c.fillStyle = '#38bdf8';
+        // Variable Wings (Blocky Beveled Wings)
+        c.fillStyle = '#e2e8f0';
+        // Left Wing
         c.beginPath();
-        c.arc(14, -2, 5, 0, Math.PI * 2);
+        c.moveTo(4, -8);
+        c.lineTo(-8, -28);
+        c.lineTo(-18, -24);
+        c.lineTo(-6, -6);
+        c.closePath();
         c.fill();
-
-        // Propeller Thruster Flame/Wash (Cyan bubbles)
-        c.fillStyle = 'rgba(56, 189, 248, 0.6)';
+        c.strokeStyle = '#475569';
+        c.lineWidth = 1;
+        c.stroke();
+        // Right Wing
         c.beginPath();
-        c.arc(-22, 2, 4 + Math.sin(t * 5) * 2, 0, Math.PI * 2);
-        c.fill();
-
-      } else {
-        // --- HAVA MODU: F-14 TOMCAT (ORTOGONAL SÜZÜLÜŞ) ---
-        c.translate(heroPos.x, heroPos.y);
-
-        // Fuselage Body
-        c.fillStyle = '#94a3b8';
-        c.beginPath();
-        c.moveTo(18, -8); // Nose
-        c.lineTo(6, 12);
-        c.lineTo(-18, 14); // Tail
-        c.lineTo(-12, -4);
+        c.moveTo(4, 8);
+        c.lineTo(-8, 28);
+        c.lineTo(-18, 24);
+        c.lineTo(-6, 6);
         c.closePath();
         c.fill();
         c.strokeStyle = '#475569';
         c.lineWidth = 1;
         c.stroke();
 
-        // Variable Wings (Extended at lower speed, swept at high speed)
-        c.fillStyle = '#cbd5e1';
+        // Canopy (High-Gloss Neon Midnight Blue Cockpit)
+        c.fillStyle = '#06172e';
         c.beginPath();
-        c.moveTo(2, -2);
-        c.lineTo(-8, -26); // Left wing
-        c.lineTo(-16, -18);
-        c.lineTo(-4, 4);
-        c.closePath();
+        c.ellipse(10, 0, 8, 3.5, 0, 0, Math.PI * 2);
         c.fill();
+        c.strokeStyle = '#00f3ff';
+        c.lineWidth = 1;
+        c.stroke();
 
-        c.beginPath();
-        c.moveTo(8, 4);
-        c.lineTo(4, 26); // Right wing
-        c.lineTo(-6, 24);
-        c.lineTo(-2, 10);
-        c.closePath();
-        c.fill();
+        // Twin Engine Afterburners (Bright Glowing Core Orange '#ff7700')
+        c.shadowColor = '#ff7700';
+        c.shadowBlur = 14;
+        c.fillStyle = '#ff7700';
 
-        // Canopy (Cockpit Glass)
-        c.fillStyle = '#0f172a';
-        c.beginPath();
-        c.ellipse(10, -4, 6, 2.5, -0.4, 0, Math.PI * 2);
-        c.fill();
+        for (const ey of [-5.5, 5.5]) {
+          const flameLen = 8 + Math.sin(t * 8 + ey) * 3;
+          c.beginPath();
+          c.moveTo(-18, ey - 2.5);
+          c.lineTo(-18 - flameLen, ey);
+          c.lineTo(-18, ey + 2.5);
+          c.closePath();
+          c.fill();
 
-        // Engine Afterburner (Additive Cyan/Orange Plume)
-        c.fillStyle = '#f97316';
-        c.beginPath();
-        c.ellipse(-20, 10, 6 + Math.sin(t * 8) * 2, 3, -0.3, 0, Math.PI * 2);
-        c.fill();
+          // Intense White-Yellow Flame Core
+          c.fillStyle = '#fffbeb';
+          c.beginPath();
+          c.arc(-18 - flameLen * 0.4, ey, 1.8, 0, Math.PI * 2);
+          c.fill();
+          c.fillStyle = '#ff7700';
+        }
+        c.shadowBlur = 0;
       }
 
       c.restore();
     }
 
     // --- 6. L-CLOUDS: YÜKSEK İRTİFA BULUT GEÇİŞLERİ (Z > 120) ---
-    function renderCloudPass(c, camY, t, heroZ) {
+    function renderCloudPass(c, camX, camY, t, heroZ) {
       c.save();
-      // Altitude Haze Factor: If hero is high, clouds are near; if hero is low, clouds are overhead
       const cloudSpeedScale = 1.15;
 
       for (let p of CLOUD_PARTICLES) {
-        // Cloud floating at Z = 140
-        const cp = project(p.x, p.y * cloudSpeedScale, 140, camY * cloudSpeedScale);
-        if (cp.x < -100 || cp.x > W + 100 || cp.y < -100 || cp.y > H + 100) continue;
+        const cp = project(p.x, p.y * cloudSpeedScale, 140, camX * cloudSpeedScale, camY * cloudSpeedScale);
+        if (cp.x < -120 || cp.x > W + 120 || cp.y < -120 || cp.y > H + 120) continue;
 
-        const grad = c.createRadialGradient(cp.x, cp.y, p.radius * 0.2, cp.x, cp.y, p.radius);
+        const grad = c.createRadialGradient(cp.x, cp.y, p.radius * 0.15, cp.x, cp.y, p.radius);
         grad.addColorStop(0, `rgba(255, 255, 255, ${p.opacity})`);
-        grad.addColorStop(0.6, `rgba(226, 232, 240, ${p.opacity * 0.5})`);
+        grad.addColorStop(0.5, `rgba(224, 242, 254, ${p.opacity * 0.5})`);
         grad.addColorStop(1, 'rgba(255, 255, 255, 0)');
 
         c.fillStyle = grad;
@@ -590,13 +936,199 @@
         c.fill();
       }
 
-      // High Altitude Atmospheric Fog Layer if Z > 100
       if (heroZ > 100) {
         const fogAlpha = Math.min(0.4, (heroZ - 100) / 100);
-        c.fillStyle = `rgba(241, 245, 249, ${fogAlpha})`;
+        c.fillStyle = `rgba(240, 249, 255, ${fogAlpha})`;
         c.fillRect(0, 0, W, H);
       }
       c.restore();
+    }
+
+    // --- 7. TAKTİK MİNİMAP & SAVAŞ SİSİ (CANVAS ORTASINDA AÇILIR) ---
+    function renderCenterTacticalMap(c) {
+      c.save();
+      const mapW = 460;
+      const mapH = 380;
+      const mapX = (W - mapW) / 2;
+      const mapY = (H - mapH) / 2;
+
+      // 1. Semi-transparent Backdrop (%88 Opak)
+      c.fillStyle = 'rgba(5, 11, 24, 0.88)';
+      c.strokeStyle = '#00f3ff';
+      c.lineWidth = 2;
+      c.shadowColor = '#00f3ff';
+      c.shadowBlur = 18;
+      c.fillRect(mapX, mapY, mapW, mapH);
+      c.strokeRect(mapX, mapY, mapW, mapH);
+      c.shadowBlur = 0;
+
+      // Header Bar
+      c.fillStyle = 'rgba(0, 243, 255, 0.15)';
+      c.fillRect(mapX, mapY, mapW, 26);
+      c.fillStyle = '#00f3ff';
+      c.font = 'bold 11px monospace';
+      c.fillText('TACTICAL RADAR & ROUTE OVERLAY [STAGE 01]', mapX + 12, mapY + 17);
+      c.fillStyle = '#94a3b8';
+      c.font = '10px monospace';
+      c.fillText('[M] Kapat', mapX + mapW - 65, mapY + 17);
+
+      const radarAreaX = mapX + 20;
+      const radarAreaY = mapY + 36;
+      const radarAreaW = mapW - 40;
+      const radarAreaH = mapH - 52;
+
+      // Radar Inner Boundary
+      c.fillStyle = '#030814';
+      c.fillRect(radarAreaX, radarAreaY, radarAreaW, radarAreaH);
+      c.strokeStyle = '#0f2942';
+      c.lineWidth = 1;
+      c.strokeRect(radarAreaX, radarAreaY, radarAreaW, radarAreaH);
+
+      // Radar Grid Lines
+      c.strokeStyle = 'rgba(0, 243, 255, 0.12)';
+      for (let gx = radarAreaX; gx <= radarAreaX + radarAreaW; gx += radarAreaW / 4) {
+        c.beginPath();
+        c.moveTo(gx, radarAreaY);
+        c.lineTo(gx, radarAreaY + radarAreaH);
+        c.stroke();
+      }
+      for (let gy = radarAreaY; gy <= radarAreaY + radarAreaH; gy += radarAreaH / 5) {
+        c.beginPath();
+        c.moveTo(radarAreaX, gy);
+        c.lineTo(radarAreaX + radarAreaW, gy);
+        c.stroke();
+      }
+
+      // Convert World coords to Minimap coords
+      function toMiniMap(wx, wy) {
+        const mx = radarAreaX + ((wx + MAP_LATERAL_HALF) / (MAP_LATERAL_HALF * 2)) * radarAreaW;
+        // Map Y flows upward on radar
+        const my = (radarAreaY + radarAreaH) - (wy / MAP_TOTAL_LENGTH) * radarAreaH;
+        return { x: mx, y: my };
+      }
+
+      // Render Fog of War Dither Pattern
+      c.fillStyle = 'rgba(2, 6, 16, 0.72)';
+      const cellW = radarAreaW / 20;
+      const cellH = radarAreaH / 100;
+      for (let r = 0; r < 100; r++) {
+        for (let col = 0; col < 20; col++) {
+          if (STATE.fogGrid[r * 20 + col] === 0) {
+            // Unexplored: Draw dark fog tile with subtle dither dot
+            const fx = radarAreaX + col * cellW;
+            const fy = (radarAreaY + radarAreaH) - (r + 1) * cellH;
+            c.fillRect(fx, fy, cellW, cellH);
+          }
+        }
+      }
+
+      // Main Mission Route (Cyan Solid Line)
+      c.strokeStyle = '#00f3ff';
+      c.lineWidth = 2;
+      c.shadowColor = '#00f3ff';
+      c.shadowBlur = 8;
+      c.beginPath();
+      const p0 = toMiniMap(0, 0);
+      const p1 = toMiniMap(0, MAP_TOTAL_LENGTH);
+      c.moveTo(p0.x, p0.y);
+      c.lineTo(p1.x, p1.y);
+      c.stroke();
+
+      // Secret / Bonus Corridor (Yellow Dashed Line)
+      c.strokeStyle = '#f59e0b';
+      c.shadowColor = '#f59e0b';
+      c.shadowBlur = 8;
+      c.setLineDash([5, 5]);
+      c.beginPath();
+      const b0 = toMiniMap(140, 1500);
+      const b1 = toMiniMap(220, 2600);
+      const b2 = toMiniMap(140, 3700);
+      c.moveTo(b0.x, b0.y);
+      c.lineTo(b1.x, b1.y);
+      c.lineTo(b2.x, b2.y);
+      c.stroke();
+      c.setLineDash([]);
+      c.shadowBlur = 0;
+
+      // Legend Texts
+      c.font = '9px monospace';
+      c.fillStyle = '#00f3ff';
+      c.fillText('— ANA ROTA', radarAreaX + 8, radarAreaY + 16);
+      c.fillStyle = '#f59e0b';
+      c.fillText('- - GİZLİ KORİDOR', radarAreaX + 80, radarAreaY + 16);
+
+      // Current Hero Aircraft Position (Neon Green Triangle)
+      const curMiniPos = toMiniMap(STATE.heroX, STATE.heroY);
+      c.save();
+      c.translate(curMiniPos.x, curMiniPos.y);
+      // Hero radar angle points according to heading (rotated -90 for canvas upward 0Y)
+      c.rotate(-STATE.heroHeading + Math.PI / 2);
+      c.fillStyle = '#10b981';
+      c.shadowColor = '#10b981';
+      c.shadowBlur = 10;
+      c.beginPath();
+      c.moveTo(0, -7);
+      c.lineTo(5, 5);
+      c.lineTo(0, 3);
+      c.lineTo(-5, 5);
+      c.closePath();
+      c.fill();
+      c.restore();
+
+      c.restore();
+    }
+
+    // --- 8. LEVEL PARAMETERS EXPORT (stage_01.json) ---
+    function exportStageParameters() {
+      const stageConfig = {
+        meta: {
+          stage_id: "stage_01_regain_tokyo",
+          norm_standard: "ACME Lex Superior v3.2.0",
+          dof_principle: "DoF = 0 (Deterministic)",
+          exported_at: new Date().toISOString()
+        },
+        environment: {
+          total_length_m: MAP_TOTAL_LENGTH,
+          lateral_bounds_m: [-MAP_LATERAL_HALF, MAP_LATERAL_HALF],
+          camera_mode: STATE.cameraMode,
+          base_speed_px: STATE.speed,
+          altitude_limits: { min_z: -100, max_z: 180 }
+        },
+        biomes: [
+          { name: "OPEN_OCEAN", y_range: [0, 1250], default_z: 80, vehicle: "f14_tomcat" },
+          { name: "SUSPENSION_BRIDGE", y_range: [1250, 2750], default_z: 80, vehicle: "f14_tomcat" },
+          { name: "SUBMARINE_TRENCH", y_range: [2750, 4000], default_z: -70, vehicle: "deep_submersible" },
+          { name: "UNDERGROUND_HANGAR", y_range: [4000, 5000], default_z: 40, vehicle: "stealth_drone" }
+        ],
+        routes: {
+          main_flight_path: [
+            { x: 0, y: 0, z: 80 },
+            { x: 0, y: 1250, z: 80 },
+            { x: 0, y: 2750, z: -70 },
+            { x: 0, y: 4000, z: 40 },
+            { x: 0, y: 5000, z: 10 }
+          ],
+          secret_corridor: [
+            { x: 140, y: 1500, z: 40 },
+            { x: 220, y: 2600, z: 30 },
+            { x: 140, y: 3700, z: -80 }
+          ]
+        },
+        player_state: {
+          current_x: parseFloat(STATE.heroX.toFixed(2)),
+          current_y: parseFloat(STATE.heroY.toFixed(2)),
+          current_z: parseFloat(STATE.heroZ.toFixed(2)),
+          heading_rad: parseFloat(STATE.heroHeading.toFixed(3))
+        }
+      };
+
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(stageConfig, null, 2));
+      const dlAnchor = document.createElement('a');
+      dlAnchor.setAttribute("href", dataStr);
+      dlAnchor.setAttribute("download", "stage_01.json");
+      document.body.appendChild(dlAnchor);
+      dlAnchor.click();
+      dlAnchor.remove();
     }
 
     // Start
