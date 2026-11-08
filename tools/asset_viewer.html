@@ -8,6 +8,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Three.js + Loaders + Controls CDN (r128) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/OBJLoader.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/TransformControls.js"></script>
@@ -295,37 +296,76 @@
     // --- Asset Manifest with In-Game Flags ---
     const ASSETS_MANIFEST = [
       {
+        path: "assets/models/f14.glb",
+        name: "f14.glb",
+        cat: "3d",
+        type: "3d",
+        format: "glb",
+        size_str: "569 KB",
+        inGame: true,
+        status: "CLEAN",
+        sha256: "4df9ad6139e919e5e11456b9b219ec156211f7e4c90d19baccb2b9f48c973d2e",
+        notes: "Grumman F-14 Tomcat (Carrier Air Wing Hero Jet). Tek parça GLB, sweep-wing ayrık düğümler."
+      },
+      {
+        path: "assets/models/f18.glb",
+        name: "f18.glb",
+        cat: "3d",
+        type: "3d",
+        format: "glb",
+        size_str: "1.8 MB",
+        inGame: true,
+        status: "CLEAN",
+        sha256: "04167ec7ababdc6e92ead7cccda02ae28beda37cbc31711456514d8c7d610940",
+        notes: "McDonnell Douglas F/A-18 Hornet. Tek parça GLB, carrier fighter."
+      },
+      {
+        path: "assets/models/a10.glb",
+        name: "a10.glb",
+        cat: "3d",
+        type: "3d",
+        format: "glb",
+        size_str: "1.1 MB",
+        inGame: true,
+        status: "CLEAN",
+        sha256: "63d70df023f9d1e9bc6d4de011c895f1dfd46a8432c3d6c45d096df389d24a42",
+        notes: "Fairchild Republic A-10 Thunderbolt II. Tek parça GLB, twin turbofan Warthog."
+      },
+      {
         path: "assets/models/f14.obj",
         name: "f14.obj",
         cat: "3d",
         type: "3d",
+        format: "obj",
         size_str: "1.2 MB",
-        inGame: true,
+        inGame: false,
         status: "CLEAN",
         sha256: "f3c46652a975eea9cfd1d437fa3a18b3fb07c4302431f0632bd8afd0f9adb044",
-        notes: "Grumman F-14 Tomcat (Carrier Air Wing Hero Jet). Sweep-wing articulation ready."
+        notes: "FlightGear F-14B OBJ Mesh."
       },
       {
         path: "assets/models/f18.obj",
         name: "f18.obj",
         cat: "3d",
         type: "3d",
+        format: "obj",
         size_str: "3.7 MB",
-        inGame: true,
+        inGame: false,
         status: "CLEAN",
         sha256: "2f663fc4e6f16bbff940dadfffdd5b6f11d06a1cc33fbd86b3573d2dde4f7f31",
-        notes: "McDonnell Douglas F/A-18 Hornet. Dual tail fins, high-agility carrier fighter."
+        notes: "F/A-18 Hornet OBJ Mesh."
       },
       {
         path: "assets/models/a10.obj",
         name: "a10.obj",
         cat: "3d",
         type: "3d",
+        format: "obj",
         size_str: "2.0 MB",
-        inGame: true,
+        inGame: false,
         status: "CLEAN",
         sha256: "9b68654f4bb933240233220d1bd4c4fbe206b9cb617ac6277fd90a48b98e4ea4",
-        notes: "Fairchild Republic A-10 Thunderbolt II. Twin high-bypass turbofans, 30mm GAU-8."
+        notes: "A-10 Thunderbolt II OBJ Mesh."
       },
       {
         path: ".tmp/f14_sheet.png",
@@ -702,49 +742,107 @@
         currentMesh = null;
       }
 
-      // Robust OBJ Mesh Loader with DoubleSide & Normal Repair
-      fetch(`../${asset.path}`)
-        .then(res => res.text())
-        .then(text => {
-          const geometry = parseOBJWithNormals(text);
-          geometry.computeVertexNormals(); // Recompute normals if broken
-          geometry.center(); // Auto-center to exact (0,0,0)
+      // Check format: GLB vs OBJ
+      const isGLB = asset.path.endsWith('.glb') || asset.format === 'glb';
 
-          geometry.computeBoundingBox();
-          const box = geometry.boundingBox;
-          const size = new THREE.Vector3();
-          box.getSize(size);
-          const maxDim = Math.max(size.x, size.y, size.z);
-          const scale = 14 / (maxDim || 1);
+      if (isGLB) {
+        // --- 1. GLTF / GLB Loader with Full Mesh Repair & DoubleSide ---
+        const loader = new THREE.GLTFLoader();
+        loader.load(`../${asset.path}`, (gltf) => {
+          const model = gltf.scene;
 
-          // Standard military material with DoubleSide repair
-          const material = new THREE.MeshStandardMaterial({
-            color: 0x94a3b8,
-            roughness: 0.45,
-            metalness: 0.35,
-            side: THREE.DoubleSide, // MESH REPAIR: Render both interior & exterior faces
-            wireframe: isWireframe
+          // MESH & MATERIAL ONARIMI (DoubleSide, Normals, Transparency Fix)
+          model.traverse((child) => {
+            if (child.isMesh) {
+              // DoubleSide zorla (İnce kanat ve flapların kaybolmasını engelle)
+              if (child.material) {
+                child.material.side = THREE.DoubleSide;
+                child.material.transparent = false; // Alfa kaynaklı görünmezliği kaldır
+                child.material.depthWrite = true;
+                child.material.wireframe = isWireframe;
+              }
+              // Normal hesaplama ve gölgelendirme düzeltme
+              if (child.geometry) {
+                child.geometry.computeVertexNormals();
+              }
+            }
           });
 
-          const mesh = new THREE.Mesh(geometry, material);
-          mesh.scale.set(scale, scale, scale);
+          // Model ağırlık merkezini tam (0,0,0) noktasına hizala
+          const box = new THREE.Box3().setFromObject(model);
+          const center = box.getCenter(new THREE.Vector3());
+          model.position.sub(center);
 
-          // Apply saved reference angles
-          mesh.rotation.z = THREE.MathUtils.degToRad(asset.referenceAngles.yaw || 0);
-          mesh.rotation.x = THREE.MathUtils.degToRad(asset.referenceAngles.pitch || 0);
-          mesh.rotation.y = THREE.MathUtils.degToRad(asset.referenceAngles.roll || 0);
+          // Bounding-Sphere çapına göre ölçekleme
+          const sphere = box.getBoundingSphere(new THREE.Sphere());
+          const targetScale = 14 / (sphere.radius * 2 || 1);
+          model.scale.set(targetScale, targetScale, targetScale);
 
-          currentMesh = mesh;
+          // Wrapper oluşturarak rotasyon pivotunu tam merkezle
+          const wrapper = new THREE.Group();
+          wrapper.add(model);
+
+          // Referans açılarını uygula
+          wrapper.rotation.z = THREE.MathUtils.degToRad(asset.referenceAngles.yaw || 0);
+          wrapper.rotation.x = THREE.MathUtils.degToRad(asset.referenceAngles.pitch || 0);
+          wrapper.rotation.y = THREE.MathUtils.degToRad(asset.referenceAngles.roll || 0);
+
+          currentMesh = wrapper;
           scene.add(currentMesh);
 
-          // Attach 3D Studio Max Gizmo
+          // Gizmo bağla
           transformControls.attach(currentMesh);
 
-          // Update HUD
+          // HUD güncelle
           document.getElementById('hud-yaw').innerText = `${asset.referenceAngles.yaw.toFixed(1)}°`;
           document.getElementById('hud-pitch').innerText = `${asset.referenceAngles.pitch.toFixed(1)}°`;
           document.getElementById('hud-roll').innerText = `${asset.referenceAngles.roll.toFixed(1)}°`;
+        }, undefined, (err) => {
+          console.error("GLB Load error:", err);
         });
+
+      } else {
+        // --- 2. Fallback OBJ Mesh Loader with DoubleSide & Normal Repair ---
+        fetch(`../${asset.path}`)
+          .then(res => res.text())
+          .then(text => {
+            const geometry = parseOBJWithNormals(text);
+            geometry.computeVertexNormals();
+            geometry.center(); // Auto-center to exact (0,0,0)
+
+            geometry.computeBoundingBox();
+            const box = geometry.boundingBox;
+            const size = new THREE.Vector3();
+            box.getSize(size);
+            const maxDim = Math.max(size.x, size.y, size.z);
+            const scale = 14 / (maxDim || 1);
+
+            const material = new THREE.MeshStandardMaterial({
+              color: 0x94a3b8,
+              roughness: 0.45,
+              metalness: 0.35,
+              side: THREE.DoubleSide,
+              transparent: false,
+              wireframe: isWireframe
+            });
+
+            const mesh = new THREE.Mesh(geometry, material);
+            mesh.scale.set(scale, scale, scale);
+
+            mesh.rotation.z = THREE.MathUtils.degToRad(asset.referenceAngles.yaw || 0);
+            mesh.rotation.x = THREE.MathUtils.degToRad(asset.referenceAngles.pitch || 0);
+            mesh.rotation.y = THREE.MathUtils.degToRad(asset.referenceAngles.roll || 0);
+
+            currentMesh = mesh;
+            scene.add(currentMesh);
+
+            transformControls.attach(currentMesh);
+
+            document.getElementById('hud-yaw').innerText = `${asset.referenceAngles.yaw.toFixed(1)}°`;
+            document.getElementById('hud-pitch').innerText = `${asset.referenceAngles.pitch.toFixed(1)}°`;
+            document.getElementById('hud-roll').innerText = `${asset.referenceAngles.roll.toFixed(1)}°`;
+          });
+      }
     }
 
     // --- Mesh Parser with Complete Surface Reconstruction ---
