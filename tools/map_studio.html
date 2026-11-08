@@ -67,6 +67,22 @@
       </span>
     </div>
 
+    <!-- 3-Modlu Projeksiyon Seçici (Kuş Bakışı / 2.5D İzometrik / Yan Profil) -->
+    <div class="flex items-center gap-1 bg-[#050811] p-1 rounded-lg border border-slate-800 shadow-inner">
+      <button id="view-btn-top" onclick="setProjectionMode('TOP_DOWN')"
+        class="px-2.5 py-1 rounded text-[11px] font-bold text-slate-400 hover:text-slate-200 transition-all">
+        🗺️ Kuş Bakışı (1)
+      </button>
+      <button id="view-btn-iso" onclick="setProjectionMode('ISOMETRIC_25D')"
+        class="px-2.5 py-1 rounded text-[11px] font-bold bg-[#00f3ff] text-slate-950 shadow-[0_0_10px_rgba(0,243,255,0.4)] transition-all">
+        📐 2.5D İzometrik (2)
+      </button>
+      <button id="view-btn-side" onclick="setProjectionMode('SIDE_SCROLL_RELATIVE')"
+        class="px-2.5 py-1 rounded text-[11px] font-bold text-slate-400 hover:text-slate-200 transition-all">
+        ✈️ Yan Profil (3)
+      </button>
+    </div>
+
     <!-- Status Telemetry HUD -->
     <div class="flex items-center gap-4 text-xs font-mono">
       <div>Biome: <strong id="hud-biome-name" class="text-amber-400 font-bold">OPEN OCEAN</strong></div>
@@ -428,6 +444,17 @@
             </div>
           </div>
         </div>
+
+        <!-- 3. MİNİ TOP-DOWN RADAR PENCERESİ (PiP - SAĞ ÜST KÖŞE) -->
+        <div id="top-down-pip" class="absolute top-4 right-4 w-[180px] h-[180px] bg-[#070d1a]/85 border border-cyan-800/70 rounded-xl overflow-hidden backdrop-blur shadow-[0_0_15px_rgba(0,243,255,0.2)] flex flex-col pointer-events-none z-20">
+          <div class="h-5 bg-cyan-950/60 border-b border-cyan-900/60 px-2 flex items-center justify-between text-[9px] font-mono text-cyan-300">
+            <span class="font-bold flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-cyan-400"></span>PLAN RADAR</span>
+            <span class="text-slate-400">TOP-DOWN</span>
+          </div>
+          <div class="flex-1 relative">
+            <canvas id="pip-view" width="180" height="155" class="w-full h-full pixelated"></canvas>
+          </div>
+        </div>
         </div>
 
       </div>
@@ -468,6 +495,7 @@
       paused: false,
       speed: 3.5,
       cameraMode: 'rail', // 'rail' | 'free'
+      projectionMode: 'ISOMETRIC_25D', // 'TOP_DOWN' | 'ISOMETRIC_25D' | 'SIDE_SCROLL_RELATIVE'
       cameraY: 0,
       cameraX: 0,
       targetAltitudeZ: 80,
@@ -566,6 +594,18 @@
       if (e.code === 'KeyC') {
         setCameraMode(STATE.cameraMode === 'rail' ? 'free' : 'rail');
       }
+      if (e.code === 'Digit1') {
+        setProjectionMode('TOP_DOWN');
+      }
+      if (e.code === 'Digit2') {
+        setProjectionMode('ISOMETRIC_25D');
+      }
+      if (e.code === 'Digit3') {
+        setProjectionMode('SIDE_SCROLL_RELATIVE');
+      }
+      if (e.code === 'KeyV') {
+        cycleProjectionMode();
+      }
       if (e.code === 'Space' && e.ctrlKey) {
         togglePause();
       }
@@ -642,6 +682,34 @@
 
       const thrustValEl = document.getElementById('hud-thrust-val');
       if (thrustValEl) thrustValEl.innerText = `THROTTLE: ${thrustPct}%`;
+    }
+
+    function setProjectionMode(mode) {
+      STATE.projectionMode = mode;
+
+      const btnTop = document.getElementById('view-btn-top');
+      const btnIso = document.getElementById('view-btn-iso');
+      const btnSide = document.getElementById('view-btn-side');
+      const pip = document.getElementById('top-down-pip');
+
+      const activeClass = "px-2.5 py-1 rounded text-[11px] font-bold bg-[#00f3ff] text-slate-950 shadow-[0_0_10px_rgba(0,243,255,0.4)] transition-all";
+      const inactiveClass = "px-2.5 py-1 rounded text-[11px] font-bold text-slate-400 hover:text-slate-200 transition-all";
+
+      if (btnTop) btnTop.className = (mode === 'TOP_DOWN') ? activeClass : inactiveClass;
+      if (btnIso) btnIso.className = (mode === 'ISOMETRIC_25D') ? activeClass : inactiveClass;
+      if (btnSide) btnSide.className = (mode === 'SIDE_SCROLL_RELATIVE') ? activeClass : inactiveClass;
+
+      // Show PiP radar only in 2.5D isometric mode
+      if (pip) {
+        if (mode === 'ISOMETRIC_25D') pip.classList.remove('hidden');
+        else pip.classList.add('hidden');
+      }
+    }
+
+    function cycleProjectionMode() {
+      const modes = ['TOP_DOWN', 'ISOMETRIC_25D', 'SIDE_SCROLL_RELATIVE'];
+      const nextIdx = (modes.indexOf(STATE.projectionMode) + 1) % modes.length;
+      setProjectionMode(modes[nextIdx]);
     }
 
     function setCameraMode(mode) {
@@ -723,13 +791,39 @@
       return from + diff * weight;
     }
 
-    // --- 2.5D Orthogonal Projection Matrix with CameraX and CameraY ---
+    // --- Multi-Perspective Projection Matrix Engine (TOP_DOWN, ISOMETRIC_25D, SIDE_SCROLL_RELATIVE) ---
     function project(x, y, z, camX, camY) {
       const relX = x - camX;
       const relY = y - camY;
-      const sx = W / 2 + (relX - relY) * 1.5;
-      const sy = H / 2 + (relX + relY) * 0.75 - z * 1.2;
-      return { x: sx, y: sy };
+
+      if (STATE.projectionMode === 'TOP_DOWN') {
+        // MOD 1: Kuş Bakışı (Top-Down Plan: X yatay, Y dikey, Z sıfırlandı)
+        const sx = W / 2 + relX * 1.5;
+        const sy = H / 2 - relY * 0.9; // Y ekseni yukarı akar
+        return { x: sx, y: sy };
+
+      } else if (STATE.projectionMode === 'SIDE_SCROLL_RELATIVE') {
+        // MOD 3: Göreceli Profil Modu (Side-Scroller Relative: Uçak soldan sağa akar)
+        // Heading eksenine göre koordinat rotasyonu
+        const angle = STATE.heroHeading;
+        const cosA = Math.cos(angle);
+        const sinA = Math.sin(angle);
+
+        // Uçağın uçuş yönü ekseninde ileri mesafe (longitudinal) ve yan mesafe (lateral)
+        const forward = relX * cosA + relY * sinA;
+        const lateral = -relX * sinA + relY * cosA;
+
+        // Ekranda X ekseni ileri mesafe, Y ekseni Z irtifası
+        const sx = W / 2 + forward * 1.4;
+        const sy = H / 2 - z * 1.6 + lateral * 0.4;
+        return { x: sx, y: sy };
+
+      } else {
+        // MOD 2: Standart 2.5D İzometrik Aksonometrik Arcade Açısı
+        const sx = W / 2 + (relX - relY) * 1.5;
+        const sy = H / 2 + (relX + relY) * 0.75 - z * 1.2;
+        return { x: sx, y: sy };
+      }
     }
 
     function drawPoly(c, pts, fill, stroke, lineWidth = 1) {
@@ -958,6 +1052,11 @@
       // --- KATMAN 7: CAPCOM CPS-1 3+3 ENVANTER, TELSİZ VE STATUS HUD SİSTEMİ ---
       hud.update();
       hud.render(ctx, W, H, STATE.cameraY, MAP_TOTAL_LENGTH);
+
+      // --- MİNİ TOP-DOWN RADAR PENCERESİ RENDER (PiP CANVAS) ---
+      if (STATE.projectionMode === 'ISOMETRIC_25D') {
+        renderTopDownPip();
+      }
 
       requestAnimationFrame(render);
     }
@@ -1502,6 +1601,75 @@
       c.fillText('[M: Haritayı Kapat/Aç]', W - 180, H - 35);
 
       c.restore();
+    }
+
+    // --- 3. MİNİ TOP-DOWN RADAR PENCERESİ RENDER (PiP: 180x155) ---
+    function renderTopDownPip() {
+      const pipCanvas = document.getElementById('pip-view');
+      if (!pipCanvas) return;
+      const pc = pipCanvas.getContext('2d');
+      const pw = pipCanvas.width;
+      const ph = pipCanvas.height;
+
+      pc.fillStyle = '#050c18';
+      pc.fillRect(0, 0, pw, ph);
+
+      // Top-down scope: Map X in [-380, 380], Map Y centered on hero [-300, +500]
+      const scopeH = 1200;
+      const startY = STATE.cameraY - 200;
+
+      function toPip(wx, wy) {
+        const px = pw / 2 + (wx / (MAP_LATERAL_HALF * 2)) * (pw - 20);
+        const py = ph - ((wy - startY) / scopeH) * ph;
+        return { x: px, y: py };
+      }
+
+      // Grid Lines
+      pc.strokeStyle = 'rgba(0, 243, 255, 0.15)';
+      pc.lineWidth = 1;
+      for (let gx = -MAP_LATERAL_HALF; gx <= MAP_LATERAL_HALF; gx += 120) {
+        const p0 = toPip(gx, startY);
+        const p1 = toPip(gx, startY + scopeH);
+        pc.beginPath();
+        pc.moveTo(p0.x, p0.y);
+        pc.lineTo(p1.x, p1.y);
+        pc.stroke();
+      }
+
+      // Main Mission Flight Path (Cyan Line)
+      pc.strokeStyle = '#00f3ff';
+      pc.lineWidth = 2;
+      pc.beginPath();
+      const m0 = toPip(0, startY);
+      const m1 = toPip(0, startY + scopeH);
+      pc.moveTo(m0.x, m0.y);
+      pc.lineTo(m1.x, m1.y);
+      pc.stroke();
+
+      // Camera Frustum in Top-Down view
+      const camP = toPip(STATE.cameraX, STATE.cameraY);
+      pc.strokeStyle = '#38bdf8';
+      pc.setLineDash([3, 3]);
+      pc.strokeRect(camP.x - 30, camP.y - 20, 60, 40);
+      pc.setLineDash([]);
+
+      // Hero Plane (Neon Green Triangle facing up)
+      const heroP = toPip(STATE.heroX, STATE.heroY);
+      pc.save();
+      pc.translate(heroP.x, heroP.y);
+      // Top down heading: 0 is right, -PI/2 is up
+      pc.rotate(-STATE.heroHeading + Math.PI / 2);
+      pc.fillStyle = '#10b981';
+      pc.shadowColor = '#10b981';
+      pc.shadowBlur = 6;
+      pc.beginPath();
+      pc.moveTo(0, -6);
+      pc.lineTo(4, 4);
+      pc.lineTo(0, 2);
+      pc.lineTo(-4, 4);
+      pc.closePath();
+      pc.fill();
+      pc.restore();
     }
 
     // --- 5. SEVİYE ŞARTNAMESİ DIŞA AKTARIMI (STAGE SPEC EXPORTER: stage_01.json) ---
