@@ -1,0 +1,880 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Carrier Air Wing - Asset Viewer & 3D Calibration Studio</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Three.js + Loaders + Controls CDN (r128) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/OBJLoader.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/TransformControls.js"></script>
+  <style>
+    .checkerboard {
+      background-color: #111827;
+      background-image: 
+        linear-gradient(45deg, #1f2937 25%, transparent 25%), 
+        linear-gradient(-45deg, #1f2937 25%, transparent 25%), 
+        linear-gradient(45deg, transparent 75%, #1f2937 75%), 
+        linear-gradient(-45deg, transparent 75%, #1f2937 75%);
+      background-size: 20px 20px;
+      background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+    }
+    .pixelated {
+      image-rendering: -moz-crisp-edges;
+      image-rendering: -webkit-crisp-edges;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+    }
+    /* Custom Scrollbars */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #0f172a; }
+    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #475569; }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 flex flex-col h-screen overflow-hidden font-sans select-none">
+
+  <!-- Top Navigation Header -->
+  <header class="bg-slate-900 border-b border-slate-800 px-6 py-2.5 flex items-center justify-between shrink-0 z-20">
+    <div class="flex items-center gap-3">
+      <div class="w-3 h-3 rounded-full bg-emerald-500 animate-pulse"></div>
+      <h1 class="text-sm font-bold tracking-wider text-slate-100 uppercase">
+        Carrier Air Wing <span class="text-amber-400 font-normal">| 3D Gizmo & Calibration Studio</span>
+      </h1>
+      <span class="text-[10px] bg-slate-800 text-slate-400 border border-slate-700 rounded px-2 py-0.5">ACME v3.2.0 (DoF = 0)</span>
+    </div>
+    
+    <div class="flex items-center gap-4 text-xs text-slate-400">
+      <div class="flex items-center gap-1.5">
+        <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+        <span>CLEAN: <strong id="count-clean" class="text-slate-200">3</strong></span>
+      </div>
+      <div class="flex items-center gap-1.5">
+        <span class="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
+        <span>IN-GAME: <strong id="count-ingame" class="text-slate-200">3</strong></span>
+      </div>
+      <span class="text-slate-600">|</span>
+      <span id="system-clock" class="font-mono text-slate-300">--:--:--</span>
+    </div>
+  </header>
+
+  <!-- Main Viewport Layout -->
+  <div class="flex flex-1 overflow-hidden">
+    
+    <!-- Panel A: Asset Explorer & In-Game Filtering (Left Column) -->
+    <aside class="w-80 bg-slate-900 border-r border-slate-800 flex flex-col shrink-0">
+      
+      <!-- Filter Tabs -->
+      <div class="p-3 border-b border-slate-800 space-y-2">
+        <div class="relative">
+          <input 
+            type="text" 
+            id="search-input" 
+            placeholder="Search assets (f14, f18, a10, sheet)..." 
+            class="w-full bg-slate-950 border border-slate-700 rounded px-3 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-amber-400"
+          />
+        </div>
+
+        <!-- Scope & Type Filters -->
+        <div class="flex flex-col gap-1.5">
+          <div class="grid grid-cols-2 gap-1 text-[11px]">
+            <button onclick="setScopeFilter('all')" id="scope-all-btn" class="px-2 py-1 rounded bg-amber-500 text-slate-950 font-bold">Tüm Kütüphane</button>
+            <button onclick="setScopeFilter('ingame')" id="scope-ingame-btn" class="px-2 py-1 rounded bg-slate-800 text-slate-300 hover:bg-slate-700">Yalnızca Oyundakiler</button>
+          </div>
+
+          <div class="flex gap-1 text-[11px] pt-1">
+            <button onclick="filterCategory('all')" class="cat-btn active flex-1 py-1 rounded bg-slate-700 text-slate-100 font-semibold" data-cat="all">Tümü</button>
+            <button onclick="filterCategory('3d')" class="cat-btn flex-1 py-1 rounded bg-slate-800 text-slate-400 hover:bg-slate-700" data-cat="3d">3D Models</button>
+            <button onclick="filterCategory('2d')" class="cat-btn flex-1 py-1 rounded bg-slate-800 text-slate-400 hover:bg-slate-700" data-cat="2d">Sprites</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Asset List Container -->
+      <div id="asset-list" class="flex-1 overflow-y-auto p-2 space-y-1.5">
+        <!-- Rendered dynamically -->
+      </div>
+
+      <!-- Footer Info -->
+      <div class="p-2.5 border-t border-slate-800 bg-slate-950 text-[11px] text-slate-500 flex justify-between items-center">
+        <span>Specs: <code class="text-amber-400">specs/state.json</code></span>
+        <span id="asset-total-count">0 items</span>
+      </div>
+    </aside>
+
+    <!-- Center Inspection Area -->
+    <main class="flex-1 flex flex-col bg-slate-950 overflow-hidden relative">
+      
+      <!-- Viewport Header Toolbar -->
+      <div class="h-12 border-b border-slate-800 bg-slate-900/80 backdrop-blur px-4 flex items-center justify-between shrink-0 z-10">
+        
+        <!-- Active Asset Title & Status -->
+        <div class="flex items-center gap-2.5 truncate">
+          <h2 id="active-asset-name" class="font-bold text-slate-200 text-xs truncate">Select an asset</h2>
+          <span id="active-asset-badge" class="text-[10px] font-bold px-2 py-0.5 rounded uppercase"></span>
+        </div>
+
+        <!-- 3D Gizmo & Camera Controls -->
+        <div id="controls-3d" class="flex items-center gap-2 text-xs">
+          
+          <!-- Snap Angle Dropdown / Toggle -->
+          <div class="flex items-center gap-1 bg-slate-800 border border-slate-700 rounded px-2 py-1">
+            <span class="text-slate-400 text-[11px]">Snap:</span>
+            <select id="snap-select" onchange="setSnapAngle(this.value)" class="bg-transparent text-amber-400 font-bold focus:outline-none cursor-pointer">
+              <option value="0" class="bg-slate-900 text-slate-200">Kapalı</option>
+              <option value="11.25" class="bg-slate-900 text-slate-200">11.25°</option>
+              <option value="22.5" selected class="bg-slate-900 text-slate-200">22.5° (16-Step)</option>
+              <option value="45" class="bg-slate-900 text-slate-200">45.0°</option>
+              <option value="90" class="bg-slate-900 text-slate-200">90.0°</option>
+            </select>
+          </div>
+
+          <!-- Camera Projection Toggle -->
+          <button onclick="toggleProjection()" id="proj-toggle-btn" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 rounded font-medium">
+            📷 Orthographic
+          </button>
+
+          <!-- Reset Camera View -->
+          <button onclick="resetCameraView()" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 rounded">
+            🔄 Reset View
+          </button>
+
+          <!-- Wireframe Toggle -->
+          <button onclick="toggleWireframe()" id="wireframe-btn" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 rounded">
+            Wireframe
+          </button>
+
+          <!-- Set Heading Reference (Lock) -->
+          <button onclick="lockHeadingReference()" class="px-3 py-1 bg-indigo-600 hover:bg-indigo-500 text-white rounded font-bold shadow flex items-center gap-1">
+            🔒 Referans Yön Olarak Kilitle
+          </button>
+        </div>
+
+        <!-- 2D Viewport Controls -->
+        <div id="controls-2d" class="hidden flex items-center gap-2 text-xs">
+          <div class="flex items-center gap-1 bg-slate-800 rounded p-0.5 border border-slate-700">
+            <button onclick="setZoom(1)" class="zoom-btn px-2 py-0.5 rounded text-slate-300" data-zoom="1">1x</button>
+            <button onclick="setZoom(2)" class="zoom-btn px-2 py-0.5 rounded active bg-amber-500 text-slate-950 font-bold" data-zoom="2">2x</button>
+            <button onclick="setZoom(4)" class="zoom-btn px-2 py-0.5 rounded text-slate-300" data-zoom="4">4x</button>
+            <button onclick="setZoom(8)" class="zoom-btn px-2 py-0.5 rounded text-slate-300" data-zoom="8">8x</button>
+          </div>
+          <button id="anim-toggle" onclick="toggleSpriteAnimation()" class="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-500 text-white rounded font-medium">
+            ▶ Play Loop
+          </button>
+        </div>
+
+      </div>
+
+      <!-- Viewport Display Canvas -->
+      <div class="flex-1 flex items-center justify-center overflow-hidden relative checkerboard" id="viewport-container">
+        
+        <!-- Placeholder View -->
+        <div id="placeholder-view" class="text-center text-slate-500 max-w-sm">
+          <div class="text-4xl mb-3">🛩️</div>
+          <p class="text-sm font-semibold text-slate-300 mb-1">Visual Studio Ready</p>
+          <p class="text-xs text-slate-500">Pick any 3D model or 2D sprite on the left panel to inspect and calibrate.</p>
+        </div>
+
+        <!-- 2D Sprite View -->
+        <div id="view-2d" class="hidden relative flex flex-col items-center p-6">
+          <div class="border border-slate-700 shadow-2xl rounded overflow-hidden bg-slate-900/60 p-2">
+            <img id="img-display" src="" alt="2D Sprite" class="pixelated block origin-center transition-transform" />
+          </div>
+          <!-- 16-Frame Mini Loop Preview -->
+          <div id="strip-anim-box" class="hidden mt-4 p-3 bg-slate-900/90 border border-slate-700 rounded shadow-xl flex items-center gap-4">
+            <div class="w-24 h-24 border border-slate-700 bg-slate-950 rounded flex items-center justify-center">
+              <canvas id="anim-canvas" width="128" height="128" class="pixelated"></canvas>
+            </div>
+            <div class="text-xs">
+              <div class="font-bold text-amber-400 mb-0.5">16-Angle Roll Loop</div>
+              <div id="anim-frame-label" class="text-slate-400">Frame: 0 / 16</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3D Three.js Container -->
+        <div id="view-3d" class="w-full h-full relative">
+          <div id="three-canvas-container" class="w-full h-full"></div>
+          
+          <!-- Bottom Left HUD: Attitude Indicator -->
+          <div class="absolute bottom-4 left-4 bg-slate-900/90 backdrop-blur border border-slate-800 rounded p-3 text-xs space-y-1 z-10 pointer-events-none">
+            <div class="font-bold text-amber-400 uppercase tracking-wider text-[10px]">Real-Time Euler Attitude</div>
+            <div class="grid grid-cols-3 gap-2 font-mono text-[11px] pt-1">
+              <div>Yaw (Z): <strong id="hud-yaw" class="text-blue-400">0.0°</strong></div>
+              <div>Pitch (X): <strong id="hud-pitch" class="text-rose-400">0.0°</strong></div>
+              <div>Roll (Y): <strong id="hud-roll" class="text-emerald-400">0.0°</strong></div>
+            </div>
+            <div class="text-[10px] text-slate-500 pt-1">Shift: Hold to force angle snap</div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Bottom Status Bar -->
+      <footer class="h-7 bg-slate-900 border-t border-slate-800 px-6 flex items-center justify-between text-[11px] text-slate-400 shrink-0 z-20">
+        <div class="flex items-center gap-3">
+          <span class="font-mono text-emerald-400">INV-TOOL-GRADUATION: LEVEL-2 STAGING</span>
+          <span class="text-slate-600">|</span>
+          <span id="active-hash-view" class="font-mono truncate max-w-md">SHA-256: -</span>
+        </div>
+        <div class="font-mono text-slate-400">Zero-GC • DoubleSide Normals • TransformGizmo Enabled</div>
+      </footer>
+
+    </main>
+
+    <!-- Panel C: Calibration, Metadata & Export (Right Column) -->
+    <aside class="w-80 bg-slate-900 border-l border-slate-800 flex flex-col shrink-0 p-4 space-y-4 z-20">
+      
+      <div>
+        <h3 class="text-xs font-bold uppercase tracking-wider text-amber-400 mb-1">Varlık Detay & Kalibrasyon</h3>
+        <p class="text-[11px] text-slate-400">Modelin referans pivot yönünü ve oyun içi parametrelerini kalibre edin.</p>
+      </div>
+
+      <!-- Reference Angles Display -->
+      <div class="bg-slate-950 border border-slate-800 rounded p-3 space-y-2">
+        <div class="text-[11px] font-semibold text-slate-300">Kaydedilen Referans Sıfır Açısı:</div>
+        <div class="grid grid-cols-3 gap-1 font-mono text-xs">
+          <div class="bg-slate-900 p-1.5 rounded text-center border border-slate-800">
+            <div class="text-[9px] text-slate-500">YAW</div>
+            <div id="meta-yaw" class="text-blue-400 font-bold">0.0°</div>
+          </div>
+          <div class="bg-slate-900 p-1.5 rounded text-center border border-slate-800">
+            <div class="text-[9px] text-slate-500">PITCH</div>
+            <div id="meta-pitch" class="text-rose-400 font-bold">0.0°</div>
+          </div>
+          <div class="bg-slate-900 p-1.5 rounded text-center border border-slate-800">
+            <div class="text-[9px] text-slate-500">ROLL</div>
+            <div id="meta-roll" class="text-emerald-400 font-bold">0.0°</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- In-Game Toggle & Configuration -->
+      <div class="bg-slate-950 border border-slate-800 rounded p-3 space-y-2">
+        <label class="flex items-center justify-between cursor-pointer">
+          <span class="text-xs font-medium text-slate-200">Oyuna Dahil Et (In-Game)</span>
+          <input type="checkbox" id="ingame-checkbox" onchange="toggleInGameStatus(this.checked)" class="w-4 h-4 rounded accent-amber-500 cursor-pointer">
+        </label>
+        <div class="text-[10px] text-slate-500">İşaretlendiğinde model üretim ve render döngüsüne aktif varlık olarak mühürlenir.</div>
+      </div>
+
+      <!-- Notes Textarea -->
+      <div class="flex-1 flex flex-col space-y-1">
+        <label class="text-[11px] font-semibold text-slate-300">Varlık Notları / Doğrulama:</label>
+        <textarea 
+          id="meta-notes" 
+          rows="4" 
+          placeholder="Örn: Burun Z-eksenine hizalandı, sweep 20° kanatlar ayrık, top yuvası test edildi..."
+          class="w-full flex-1 bg-slate-950 border border-slate-800 rounded p-2 text-xs text-slate-200 placeholder-slate-600 focus:outline-none focus:border-amber-400 resize-none font-mono"
+        ></textarea>
+      </div>
+
+      <!-- Export Action -->
+      <div class="space-y-2 pt-2 border-t border-slate-800">
+        <button onclick="saveCalibration()" class="w-full py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs rounded shadow flex items-center justify-center gap-1.5">
+          💾 Kalibrasyonu Kaydet & .meta.json İndir
+        </button>
+        <div id="save-status-msg" class="text-center text-[10px] text-emerald-400 hidden">
+          ✓ localStorage güncellendi ve dosya indirildi.
+        </div>
+      </div>
+
+    </aside>
+
+  </div>
+
+  <script>
+    // --- Asset Manifest with In-Game Flags ---
+    const ASSETS_MANIFEST = [
+      {
+        path: "assets/models/f14.obj",
+        name: "f14.obj",
+        cat: "3d",
+        type: "3d",
+        size_str: "1.2 MB",
+        inGame: true,
+        status: "CLEAN",
+        sha256: "f3c46652a975eea9cfd1d437fa3a18b3fb07c4302431f0632bd8afd0f9adb044",
+        notes: "Grumman F-14 Tomcat (Carrier Air Wing Hero Jet). Sweep-wing articulation ready."
+      },
+      {
+        path: "assets/models/f18.obj",
+        name: "f18.obj",
+        cat: "3d",
+        type: "3d",
+        size_str: "3.7 MB",
+        inGame: true,
+        status: "CLEAN",
+        sha256: "2f663fc4e6f16bbff940dadfffdd5b6f11d06a1cc33fbd86b3573d2dde4f7f31",
+        notes: "McDonnell Douglas F/A-18 Hornet. Dual tail fins, high-agility carrier fighter."
+      },
+      {
+        path: "assets/models/a10.obj",
+        name: "a10.obj",
+        cat: "3d",
+        type: "3d",
+        size_str: "2.0 MB",
+        inGame: true,
+        status: "CLEAN",
+        sha256: "9b68654f4bb933240233220d1bd4c4fbe206b9cb617ac6277fd90a48b98e4ea4",
+        notes: "Fairchild Republic A-10 Thunderbolt II. Twin high-bypass turbofans, 30mm GAU-8."
+      },
+      {
+        path: ".tmp/f14_sheet.png",
+        name: "f14_sheet.png",
+        cat: "2d",
+        type: "2d",
+        is_sheet: true,
+        size_str: "13.8 KB",
+        inGame: true,
+        status: "CLEAN",
+        sha256: "f3c46652a975...",
+        notes: "Baked 16-Angle Orthographic Roll Strip (2048x128 RGBA, 22.5° steps)."
+      },
+      {
+        path: "assets/f14_iso_hero.png",
+        name: "f14_iso_hero.png",
+        cat: "2d",
+        type: "2d",
+        size_str: "125.5 KB",
+        inGame: false,
+        status: "CLEAN",
+        sha256: "1f8e6c...",
+        notes: "2.5D Remake Baseline Visual Reference."
+      },
+      {
+        path: "assets/f14_calibration_debug.png",
+        name: "f14_calibration_debug.png",
+        cat: "2d",
+        type: "2d",
+        size_str: "143.4 KB",
+        inGame: false,
+        status: "CLEAN",
+        sha256: "a809b...",
+        notes: "Trigonometric calibration grid map."
+      }
+    ];
+
+    // Load persisted metadata from localStorage
+    ASSETS_MANIFEST.forEach(asset => {
+      const saved = localStorage.getItem(`meta_${asset.name}`);
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          if (parsed.inGame !== undefined) asset.inGame = parsed.inGame;
+          if (parsed.notes !== undefined) asset.notes = parsed.notes;
+          if (parsed.referenceAngles) asset.referenceAngles = parsed.referenceAngles;
+        } catch(e) {}
+      }
+      if (!asset.referenceAngles) {
+        asset.referenceAngles = { yaw: 0, pitch: 0, roll: 0 };
+      }
+    });
+
+    // --- State Variables ---
+    let currentCategory = 'all';
+    let currentScope = 'all'; // 'all' or 'ingame'
+    let selectedAsset = null;
+    let currentZoom = 2;
+    let isOrthographic = true;
+    let isWireframe = false;
+    let snapAngle = 22.5; // degrees
+
+    // --- Three.js Globals ---
+    let scene, renderer, currentMesh;
+    let orthoCamera, perspCamera, activeCamera;
+    let orbitControls, transformControls;
+
+    // --- System Clock ---
+    setInterval(() => {
+      document.getElementById('system-clock').innerText = new Date().toLocaleTimeString();
+    }, 1000);
+
+    // --- Render Asset List with Badges ---
+    function renderAssetList() {
+      const container = document.getElementById('asset-list');
+      const search = document.getElementById('search-input').value.toLowerCase();
+      container.innerHTML = '';
+
+      let cleanCount = 0, inGameCount = 0;
+      let matchedCount = 0;
+
+      ASSETS_MANIFEST.forEach(asset => {
+        if (asset.status === 'CLEAN') cleanCount++;
+        if (asset.inGame) inGameCount++;
+
+        // Category filter
+        if (currentCategory !== 'all' && asset.cat !== currentCategory && asset.type !== currentCategory) return;
+        // Scope filter
+        if (currentScope === 'ingame' && !asset.inGame) return;
+        // Search filter
+        if (search && !asset.name.toLowerCase().includes(search) && !asset.path.toLowerCase().includes(search)) return;
+
+        matchedCount++;
+        const card = document.createElement('div');
+        const isSelected = selectedAsset && selectedAsset.path === asset.path;
+        
+        card.className = `p-2 rounded border cursor-pointer transition flex flex-col gap-1 ${
+          isSelected 
+            ? 'bg-slate-800 border-amber-400' 
+            : 'bg-slate-950/70 border-slate-800 hover:border-slate-700 hover:bg-slate-800/40'
+        }`;
+
+        const typeIcon = asset.type === '3d' ? '🧊' : (asset.is_sheet ? '🎞️' : '🖼️');
+        const inGameBadge = asset.inGame 
+          ? '<span class="text-[9px] bg-blue-950 text-blue-400 border border-blue-800 px-1.5 py-0.2 rounded font-bold">IN-GAME</span>'
+          : '<span class="text-[9px] bg-slate-900 text-slate-500 border border-slate-800 px-1.5 py-0.2 rounded">BENCH</span>';
+
+        card.innerHTML = `
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-1.5 truncate">
+              <span>${typeIcon}</span>
+              <strong class="text-xs text-slate-200 truncate">${asset.name}</strong>
+            </div>
+            ${inGameBadge}
+          </div>
+          <div class="text-[10px] text-slate-500 font-mono truncate">${asset.path}</div>
+        `;
+
+        card.onclick = () => selectAsset(asset);
+        container.appendChild(card);
+      });
+
+      document.getElementById('count-clean').innerText = cleanCount;
+      document.getElementById('count-ingame').innerText = inGameCount;
+      document.getElementById('asset-total-count').innerText = `${matchedCount} items`;
+    }
+
+    function setScopeFilter(scope) {
+      currentScope = scope;
+      document.getElementById('scope-all-btn').className = scope === 'all' 
+        ? 'px-2 py-1 rounded bg-amber-500 text-slate-950 font-bold'
+        : 'px-2 py-1 rounded bg-slate-800 text-slate-300 hover:bg-slate-700';
+      document.getElementById('scope-ingame-btn').className = scope === 'ingame'
+        ? 'px-2 py-1 rounded bg-amber-500 text-slate-950 font-bold'
+        : 'px-2 py-1 rounded bg-slate-800 text-slate-300 hover:bg-slate-700';
+      renderAssetList();
+    }
+
+    function filterCategory(cat) {
+      currentCategory = cat;
+      document.querySelectorAll('.cat-btn').forEach(btn => {
+        if (btn.getAttribute('data-cat') === cat) {
+          btn.className = "cat-btn active flex-1 py-1 rounded bg-slate-700 text-slate-100 font-semibold";
+        } else {
+          btn.className = "cat-btn flex-1 py-1 rounded bg-slate-800 text-slate-400 hover:bg-slate-700";
+        }
+      });
+      renderAssetList();
+    }
+
+    document.getElementById('search-input').addEventListener('input', renderAssetList);
+
+    // --- Select & Inspect Asset ---
+    function selectAsset(asset) {
+      selectedAsset = asset;
+      renderAssetList();
+
+      document.getElementById('placeholder-view').classList.add('hidden');
+      document.getElementById('active-asset-name').innerText = `${asset.name} (${asset.size_str})`;
+      document.getElementById('active-hash-view').innerText = `SHA-256: ${asset.sha256}`;
+
+      // Populate Panel C (Metadata)
+      document.getElementById('meta-yaw').innerText = `${asset.referenceAngles.yaw.toFixed(1)}°`;
+      document.getElementById('meta-pitch').innerText = `${asset.referenceAngles.pitch.toFixed(1)}°`;
+      document.getElementById('meta-roll').innerText = `${asset.referenceAngles.roll.toFixed(1)}°`;
+      document.getElementById('ingame-checkbox').checked = asset.inGame;
+      document.getElementById('meta-notes').value = asset.notes || '';
+      document.getElementById('save-status-msg').classList.add('hidden');
+
+      const badge = document.getElementById('active-asset-badge');
+      badge.className = "text-[10px] font-bold px-2 py-0.5 rounded uppercase " + 
+        (asset.inGame ? "bg-blue-950 text-blue-400 border border-blue-800" : "bg-slate-800 text-slate-400");
+      badge.innerText = asset.inGame ? "Active In-Game" : "Catalog Asset";
+
+      if (asset.type === '3d') {
+        show3DView(asset);
+      } else {
+        show2DView(asset);
+      }
+    }
+
+    // --- 2D Inspector View ---
+    function show2DView(asset) {
+      document.getElementById('view-3d').classList.add('hidden');
+      document.getElementById('controls-3d').classList.add('hidden');
+      document.getElementById('view-2d').classList.remove('hidden');
+      document.getElementById('controls-2d').classList.remove('hidden');
+
+      const img = document.getElementById('img-display');
+      img.src = `../${asset.path}`;
+      setZoom(currentZoom);
+
+      const animBox = document.getElementById('strip-anim-box');
+      if (asset.is_sheet) {
+        animBox.classList.remove('hidden');
+        start2DLoop(img);
+      } else {
+        animBox.classList.add('hidden');
+      }
+    }
+
+    function setZoom(factor) {
+      currentZoom = factor;
+      document.querySelectorAll('.zoom-btn').forEach(btn => {
+        if (parseInt(btn.getAttribute('data-zoom')) === factor) {
+          btn.className = "zoom-btn px-2 py-0.5 rounded bg-amber-500 text-slate-950 font-bold";
+        } else {
+          btn.className = "zoom-btn px-2 py-0.5 rounded text-slate-300";
+        }
+      });
+      document.getElementById('img-display').style.transform = `scale(${factor})`;
+    }
+
+    let loopInterval = null;
+    function start2DLoop(sourceImg) {
+      clearInterval(loopInterval);
+      let frame = 0;
+      const canvas = document.getElementById('anim-canvas');
+      const ctx = canvas.getContext('2d');
+      const label = document.getElementById('anim-frame-label');
+
+      loopInterval = setInterval(() => {
+        ctx.clearRect(0, 0, 128, 128);
+        if (sourceImg.complete && sourceImg.naturalWidth > 0) {
+          ctx.drawImage(sourceImg, frame * 128, 0, 128, 128, 0, 0, 128, 128);
+        }
+        label.innerText = `Frame: ${frame + 1} / 16 (${(frame * 22.5).toFixed(1)}°)`;
+        frame = (frame + 1) % 16;
+      }, 1000 / 15);
+    }
+
+    function toggleSpriteAnimation() {
+      const btn = document.getElementById('anim-toggle');
+      if (loopInterval) {
+        clearInterval(loopInterval);
+        loopInterval = null;
+        btn.innerText = "▶ Resume Loop";
+      } else {
+        const img = document.getElementById('img-display');
+        start2DLoop(img);
+        btn.innerText = "⏸ Pause Loop";
+      }
+    }
+
+    // --- 3D Three.js Studio Engine ---
+    function initThree() {
+      const container = document.getElementById('three-canvas-container');
+      const w = container.clientWidth;
+      const h = container.clientHeight;
+      const aspect = w / h;
+      const d = 14;
+
+      // 1. Dual Cameras: Orthographic & Perspective
+      orthoCamera = new THREE.OrthographicCamera(-d * aspect, d * aspect, d, -d, 0.1, 1000);
+      perspCamera = new THREE.PerspectiveCamera(45, aspect, 0.1, 1000);
+      
+      activeCamera = orthoCamera;
+      resetCameraView();
+
+      // 2. Scene & Lighting
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x0c1017);
+
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.9);
+      scene.add(ambientLight);
+
+      const dirLight1 = new THREE.DirectionalLight(0xffffff, 1.2);
+      dirLight1.position.set(30, 40, 20);
+      scene.add(dirLight1);
+
+      const dirLight2 = new THREE.DirectionalLight(0x60a5fa, 0.6);
+      dirLight2.position.set(-20, -10, -20);
+      scene.add(dirLight2);
+
+      // Studio Ground Grid & Coordinate Axis
+      const grid = new THREE.GridHelper(30, 30, 0xf59e0b, 0x1e293b);
+      grid.position.y = -5;
+      scene.add(grid);
+
+      const axes = new THREE.AxesHelper(6);
+      scene.add(axes);
+
+      // 3. WebGL Renderer
+      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      renderer.setSize(w, h);
+      renderer.setPixelRatio(window.devicePixelRatio);
+      container.appendChild(renderer.domElement);
+
+      // 4. OrbitControls
+      orbitControls = new THREE.OrbitControls(activeCamera, renderer.domElement);
+      orbitControls.enableDamping = true;
+      orbitControls.dampingFactor = 0.08;
+
+      // 5. TransformControls (3ds Max Style Rotation Gizmo)
+      transformControls = new THREE.TransformControls(activeCamera, renderer.domElement);
+      transformControls.setMode('rotate'); // Strict ROTATION mode only
+      transformControls.size = 0.85;
+      setSnapAngle(document.getElementById('snap-select').value);
+
+      // Anti-Conflict Rule: Freeze OrbitControls while dragging Gizmo
+      transformControls.addEventListener('dragging-changed', (e) => {
+        orbitControls.enabled = !e.value;
+      });
+
+      // Real-time HUD attitude updates
+      transformControls.addEventListener('change', () => {
+        if (!currentMesh) return;
+        const euler = currentMesh.rotation;
+        const toDeg = THREE.MathUtils.radToDeg;
+        document.getElementById('hud-yaw').innerText = `${toDeg(euler.z).toFixed(1)}°`;
+        document.getElementById('hud-pitch').innerText = `${toDeg(euler.x).toFixed(1)}°`;
+        document.getElementById('hud-roll').innerText = `${toDeg(euler.y).toFixed(1)}°`;
+      });
+
+      scene.add(transformControls);
+
+      // Shift Key Snap Override
+      window.addEventListener('keydown', (e) => {
+        if (e.key === 'Shift') {
+          transformControls.setRotationSnap(THREE.MathUtils.degToRad(snapAngle || 22.5));
+        }
+      });
+      window.addEventListener('keyup', (e) => {
+        if (e.key === 'Shift') {
+          setSnapAngle(document.getElementById('snap-select').value);
+        }
+      });
+
+      // Window Resize Handler
+      window.addEventListener('resize', () => {
+        if (!container.clientWidth || !container.clientHeight) return;
+        const newAspect = container.clientWidth / container.clientHeight;
+        
+        orthoCamera.left = -d * newAspect;
+        orthoCamera.right = d * newAspect;
+        orthoCamera.top = d;
+        orthoCamera.bottom = -d;
+        orthoCamera.updateProjectionMatrix();
+
+        perspCamera.aspect = newAspect;
+        perspCamera.updateProjectionMatrix();
+
+        renderer.setSize(container.clientWidth, container.clientHeight);
+      });
+
+      function animate() {
+        requestAnimationFrame(animate);
+        orbitControls.update();
+        renderer.render(scene, activeCamera);
+      }
+      animate();
+    }
+
+    function show3DView(asset) {
+      document.getElementById('view-2d').classList.add('hidden');
+      document.getElementById('controls-2d').classList.add('hidden');
+      document.getElementById('view-3d').classList.remove('hidden');
+      document.getElementById('controls-3d').classList.remove('hidden');
+
+      if (!renderer) initThree();
+
+      // Detach existing gizmo and remove old mesh
+      transformControls.detach();
+      if (currentMesh) {
+        scene.remove(currentMesh);
+        currentMesh = null;
+      }
+
+      // Robust OBJ Mesh Loader with DoubleSide & Normal Repair
+      fetch(`../${asset.path}`)
+        .then(res => res.text())
+        .then(text => {
+          const geometry = parseOBJWithNormals(text);
+          geometry.computeVertexNormals(); // Recompute normals if broken
+          geometry.center(); // Auto-center to exact (0,0,0)
+
+          geometry.computeBoundingBox();
+          const box = geometry.boundingBox;
+          const size = new THREE.Vector3();
+          box.getSize(size);
+          const maxDim = Math.max(size.x, size.y, size.z);
+          const scale = 14 / (maxDim || 1);
+
+          // Standard military material with DoubleSide repair
+          const material = new THREE.MeshStandardMaterial({
+            color: 0x94a3b8,
+            roughness: 0.45,
+            metalness: 0.35,
+            side: THREE.DoubleSide, // MESH REPAIR: Render both interior & exterior faces
+            wireframe: isWireframe
+          });
+
+          const mesh = new THREE.Mesh(geometry, material);
+          mesh.scale.set(scale, scale, scale);
+
+          // Apply saved reference angles
+          mesh.rotation.z = THREE.MathUtils.degToRad(asset.referenceAngles.yaw || 0);
+          mesh.rotation.x = THREE.MathUtils.degToRad(asset.referenceAngles.pitch || 0);
+          mesh.rotation.y = THREE.MathUtils.degToRad(asset.referenceAngles.roll || 0);
+
+          currentMesh = mesh;
+          scene.add(currentMesh);
+
+          // Attach 3D Studio Max Gizmo
+          transformControls.attach(currentMesh);
+
+          // Update HUD
+          document.getElementById('hud-yaw').innerText = `${asset.referenceAngles.yaw.toFixed(1)}°`;
+          document.getElementById('hud-pitch').innerText = `${asset.referenceAngles.pitch.toFixed(1)}°`;
+          document.getElementById('hud-roll').innerText = `${asset.referenceAngles.roll.toFixed(1)}°`;
+        });
+    }
+
+    // --- Mesh Parser with Complete Surface Reconstruction ---
+    function parseOBJWithNormals(text) {
+      const lines = text.split('\n');
+      const positions = [];
+      const faces = [];
+      
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (line.startsWith('v ')) {
+          const parts = line.split(/\s+/);
+          positions.push(parseFloat(parts[1]), parseFloat(parts[2]), parseFloat(parts[3]));
+        } else if (line.startsWith('f ')) {
+          const parts = line.split(/\s+/).slice(1);
+          const idxs = parts.map(p => {
+            const v = p.split('/')[0];
+            return parseInt(v) - 1;
+          });
+          // Triangulate n-gon polygon fans
+          for (let t = 1; t < idxs.length - 1; t++) {
+            faces.push(idxs[0], idxs[t], idxs[t+1]);
+          }
+        }
+      }
+
+      const geometry = new THREE.BufferGeometry();
+      geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+      geometry.setIndex(faces);
+      return geometry;
+    }
+
+    // --- Viewport Controls Functions ---
+    function resetCameraView() {
+      // Standard isometric position: Pitch -19.47°, Yaw -45°
+      activeCamera.position.set(24, 18, 24);
+      activeCamera.lookAt(0, 0, 0);
+      if (orbitControls) orbitControls.target.set(0, 0, 0);
+    }
+
+    function toggleProjection() {
+      isOrthographic = !isOrthographic;
+      const btn = document.getElementById('proj-toggle-btn');
+      
+      const prevPos = activeCamera.position.clone();
+      activeCamera = isOrthographic ? orthoCamera : perspCamera;
+      activeCamera.position.copy(prevPos);
+      activeCamera.lookAt(0, 0, 0);
+
+      orbitControls.object = activeCamera;
+      transformControls.camera = activeCamera;
+
+      btn.innerText = isOrthographic ? "📷 Orthographic" : "🔭 Perspective";
+      btn.className = isOrthographic 
+        ? "px-2.5 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 rounded font-medium"
+        : "px-2.5 py-1 bg-amber-600 hover:bg-amber-500 text-slate-950 rounded font-bold";
+    }
+
+    function setSnapAngle(val) {
+      const angle = parseFloat(val);
+      snapAngle = angle;
+      if (!transformControls) return;
+      if (angle <= 0) {
+        transformControls.setRotationSnap(null);
+      } else {
+        transformControls.setRotationSnap(THREE.MathUtils.degToRad(angle));
+      }
+    }
+
+    function toggleWireframe() {
+      isWireframe = !isWireframe;
+      const btn = document.getElementById('wireframe-btn');
+      btn.innerText = isWireframe ? "Solid Mesh" : "Wireframe";
+      if (currentMesh && currentMesh.material) {
+        currentMesh.material.wireframe = isWireframe;
+      }
+    }
+
+    // --- Calibration & Heading Reference Actions ---
+    function lockHeadingReference() {
+      if (!selectedAsset || !currentMesh) return;
+      const toDeg = THREE.MathUtils.radToDeg;
+      selectedAsset.referenceAngles = {
+        yaw: parseFloat(toDeg(currentMesh.rotation.z).toFixed(1)),
+        pitch: parseFloat(toDeg(currentMesh.rotation.x).toFixed(1)),
+        roll: parseFloat(toDeg(currentMesh.rotation.y).toFixed(1))
+      };
+
+      document.getElementById('meta-yaw').innerText = `${selectedAsset.referenceAngles.yaw}°`;
+      document.getElementById('meta-pitch').innerText = `${selectedAsset.referenceAngles.pitch}°`;
+      document.getElementById('meta-roll').innerText = `${selectedAsset.referenceAngles.roll}°`;
+
+      // Flash feedback
+      const msg = document.getElementById('save-status-msg');
+      msg.innerText = `🔒 Sıfır referans açısı kilitlendi (Yaw: ${selectedAsset.referenceAngles.yaw}°)`;
+      msg.classList.remove('hidden');
+    }
+
+    function toggleInGameStatus(checked) {
+      if (!selectedAsset) return;
+      selectedAsset.inGame = checked;
+      renderAssetList();
+      selectAsset(selectedAsset);
+    }
+
+    function saveCalibration() {
+      if (!selectedAsset) return;
+      selectedAsset.notes = document.getElementById('meta-notes').value;
+      selectedAsset.inGame = document.getElementById('ingame-checkbox').checked;
+
+      // 1. Save to browser localStorage
+      const payload = {
+        name: selectedAsset.name,
+        path: selectedAsset.path,
+        sha256: selectedAsset.sha256,
+        inGame: selectedAsset.inGame,
+        notes: selectedAsset.notes,
+        referenceAngles: selectedAsset.referenceAngles,
+        calibratedAt: new Date().toISOString()
+      };
+      localStorage.setItem(`meta_${selectedAsset.name}`, JSON.stringify(payload));
+
+      // 2. Export & Download [model_name].meta.json
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${selectedAsset.name}.meta.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      // Feedback
+      const msg = document.getElementById('save-status-msg');
+      msg.innerText = `✓ ${selectedAsset.name}.meta.json indirildi ve tarayıcıya işlendi.`;
+      msg.classList.remove('hidden');
+      renderAssetList();
+    }
+
+    // --- Init App ---
+    renderAssetList();
+    selectAsset(ASSETS_MANIFEST[0]);
+  </script>
+</body>
+</html>
