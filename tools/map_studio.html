@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,22 +8,51 @@
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    * { box-sizing: border-box; }
+    * {
+      box-sizing: border-box;
+    }
+
     .pixelated {
       image-rendering: -moz-crisp-edges;
       image-rendering: -webkit-crisp-edges;
       image-rendering: pixelated;
       image-rendering: crisp-edges;
     }
-    ::-webkit-scrollbar { width: 5px; height: 5px; }
-    ::-webkit-scrollbar-track { background: #090d16; }
-    ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 3px; }
+
+    ::-webkit-scrollbar {
+      width: 5px;
+      height: 5px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: #090d16;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #1e293b;
+      border-radius: 3px;
+    }
+
+    /* Key visualizer styling */
+    .keycap {
+      transition: all 0.08s ease;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+    }
+    .keycap.active {
+      background-color: #00f3ff !important;
+      color: #050811 !important;
+      font-weight: 900;
+      box-shadow: 0 0 14px #00f3ff, 0 0 24px rgba(0, 243, 255, 0.6);
+      transform: translateY(1px);
+    }
   </style>
 </head>
+
 <body class="bg-[#050811] text-slate-100 flex flex-col h-screen overflow-hidden font-sans select-none">
 
   <!-- Header -->
-  <header class="bg-[#0a0f1d] border-b border-cyan-950/60 px-5 py-2 flex items-center justify-between shrink-0 shadow-lg">
+  <header
+    class="bg-[#0a0f1d] border-b border-cyan-950/60 px-5 py-2 flex items-center justify-between shrink-0 shadow-lg">
     <div class="flex items-center gap-3">
       <div class="w-2.5 h-2.5 rounded-full bg-[#00f3ff] shadow-[0_0_8px_#00f3ff] animate-pulse"></div>
       <h1 class="text-xs font-black tracking-widest uppercase text-slate-100">
@@ -32,7 +62,7 @@
         Minecraft Dungeons Neon Diorama
       </span>
     </div>
-    
+
     <!-- Status Telemetry HUD -->
     <div class="flex items-center gap-4 text-xs font-mono">
       <div>Biome: <strong id="hud-biome-name" class="text-amber-400 font-bold">OPEN OCEAN</strong></div>
@@ -47,24 +77,35 @@
 
   <!-- Main Viewport Layout -->
   <div class="flex flex-1 overflow-hidden">
-    
+
     <!-- Left Panel: Stage Navigation, Controls, Layer Stack & Level Export -->
     <aside class="w-80 bg-[#090e1a] border-r border-slate-800/80 flex flex-col justify-between shrink-0">
-      
+
       <!-- Stage Map Timeline Overview -->
       <div class="p-3 border-b border-slate-800/80 space-y-2">
         <div class="flex items-center justify-between">
           <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Görev Koridoru (Stage 01)</span>
           <span class="text-[10px] font-mono text-cyan-400" id="hud-world-y">Y: 0000m</span>
         </div>
-        <div class="relative w-full h-7 bg-[#040711] border border-cyan-950 rounded overflow-hidden flex items-center cursor-pointer shadow-inner" onclick="seekMap(event)" id="map-timeline">
+        <div
+          class="relative w-full h-7 bg-[#040711] border border-cyan-950 rounded overflow-hidden flex items-center cursor-pointer shadow-inner"
+          onclick="seekMap(event)" id="map-timeline">
           <!-- 4 Biome segments -->
-          <div class="h-full bg-blue-950/60 border-r border-cyan-900/40 flex items-center justify-center text-[9px] text-cyan-400 font-bold tracking-tight" style="width: 25%;">OKYANUS</div>
-          <div class="h-full bg-slate-900/60 border-r border-cyan-900/40 flex items-center justify-center text-[9px] text-amber-400 font-bold tracking-tight" style="width: 30%;">KÖPRÜ</div>
-          <div class="h-full bg-teal-950/70 border-r border-cyan-900/40 flex items-center justify-center text-[9px] text-teal-300 font-bold tracking-tight" style="width: 25%;">HENDEK/SUB</div>
-          <div class="h-full bg-purple-950/50 flex items-center justify-center text-[9px] text-purple-300 font-bold tracking-tight" style="width: 20%;">HANGAR</div>
+          <div
+            class="h-full bg-blue-950/60 border-r border-cyan-900/40 flex items-center justify-center text-[9px] text-cyan-400 font-bold tracking-tight"
+            style="width: 25%;">OKYANUS</div>
+          <div
+            class="h-full bg-slate-900/60 border-r border-cyan-900/40 flex items-center justify-center text-[9px] text-amber-400 font-bold tracking-tight"
+            style="width: 30%;">KÖPRÜ</div>
+          <div
+            class="h-full bg-teal-950/70 border-r border-cyan-900/40 flex items-center justify-center text-[9px] text-teal-300 font-bold tracking-tight"
+            style="width: 25%;">HENDEK/SUB</div>
+          <div
+            class="h-full bg-purple-950/50 flex items-center justify-center text-[9px] text-purple-300 font-bold tracking-tight"
+            style="width: 20%;">HANGAR</div>
           <!-- Scrubber needle -->
-          <div id="map-needle" class="absolute top-0 bottom-0 w-1 bg-[#00f3ff] shadow-[0_0_8px_#00f3ff]" style="left: 0%;"></div>
+          <div id="map-needle" class="absolute top-0 bottom-0 w-1 bg-[#00f3ff] shadow-[0_0_8px_#00f3ff]"
+            style="left: 0%;"></div>
         </div>
         <div class="flex justify-between text-[9px] text-slate-500 font-mono">
           <span>0m</span>
@@ -77,7 +118,7 @@
 
       <!-- Controls & Layer Stack -->
       <div class="p-3 flex-1 overflow-y-auto space-y-3">
-        
+
         <!-- Camera Mode Toggle -->
         <div>
           <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 flex justify-between">
@@ -85,10 +126,12 @@
             <span class="text-[10px] text-amber-400 font-mono">[C Tuşu]</span>
           </div>
           <div class="grid grid-cols-2 gap-1.5 bg-[#050811] p-1 rounded border border-slate-800">
-            <button id="cam-btn-rail" onclick="setCameraMode('rail')" class="py-1.5 rounded text-xs font-bold bg-[#00f3ff] text-slate-950 shadow-[0_0_10px_rgba(0,243,255,0.4)]">
+            <button id="cam-btn-rail" onclick="setCameraMode('rail')"
+              class="py-1.5 rounded text-xs font-bold bg-[#00f3ff] text-slate-950 shadow-[0_0_10px_rgba(0,243,255,0.4)]">
               RAIL (Raylı)
             </button>
-            <button id="cam-btn-free" onclick="setCameraMode('free')" class="py-1.5 rounded text-xs font-medium text-slate-400 hover:text-slate-200">
+            <button id="cam-btn-free" onclick="setCameraMode('free')"
+              class="py-1.5 rounded text-xs font-medium text-slate-400 hover:text-slate-200">
               FREE (Serbest)
             </button>
           </div>
@@ -99,71 +142,87 @@
 
         <!-- Tactical Minimap Toggle Button -->
         <div>
-          <button onclick="toggleTacticalMap()" id="btn-tac-map" class="w-full py-2 bg-gradient-to-r from-cyan-950 to-slate-900 border border-cyan-800 hover:border-cyan-400 rounded flex items-center justify-between px-3 text-xs font-bold text-cyan-300 shadow-[0_0_10px_rgba(0,243,255,0.15)] transition-all">
+          <button onclick="toggleTacticalMap()" id="btn-tac-map"
+            class="w-full py-2 bg-gradient-to-r from-cyan-950 to-slate-900 border border-cyan-800 hover:border-cyan-400 rounded flex items-center justify-between px-3 text-xs font-bold text-cyan-300 shadow-[0_0_10px_rgba(0,243,255,0.15)] transition-all">
             <span class="flex items-center gap-2">
               <span class="w-2 h-2 rounded-full bg-cyan-400 animate-ping"></span>
-              Taktik Harita & Radar
+              2.5D İzometrik Radar Haritası
             </span>
-            <span class="text-[10px] bg-cyan-900/60 border border-cyan-700/60 px-1.5 py-0.5 rounded font-mono text-cyan-200">[M] Tuşu</span>
+            <span
+              class="text-[10px] bg-cyan-900/60 border border-cyan-700/60 px-1.5 py-0.5 rounded font-mono text-cyan-200">[M]
+              Tuşu</span>
           </button>
         </div>
 
         <!-- Layer Stack Manager -->
         <div class="space-y-1.5 pt-1 border-t border-slate-800/80">
-          <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Diorama Katmanları (Stack)</div>
-          
+          <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Diorama Katmanları (Stack)
+          </div>
+
           <!-- Layer: Clouds -->
-          <label class="flex items-center justify-between p-1.5 rounded bg-[#050811] border border-slate-800 hover:border-slate-700 cursor-pointer text-xs">
+          <label
+            class="flex items-center justify-between p-1.5 rounded bg-[#050811] border border-slate-800 hover:border-slate-700 cursor-pointer text-xs">
             <div class="flex items-center gap-2">
               <span class="text-cyan-400">☁️</span>
               <span class="font-medium text-slate-200">L-CLOUDS (Z > 120)</span>
             </div>
-            <input type="checkbox" id="layer-clouds" checked onchange="toggleLayer('clouds', this.checked)" class="w-3.5 h-3.5 accent-cyan-500">
+            <input type="checkbox" id="layer-clouds" checked onchange="toggleLayer('clouds', this.checked)"
+              class="w-3.5 h-3.5 accent-cyan-500">
           </label>
 
           <!-- Layer: Hero -->
-          <label class="flex items-center justify-between p-1.5 rounded bg-[#050811] border border-slate-800 hover:border-slate-700 cursor-pointer text-xs">
+          <label
+            class="flex items-center justify-between p-1.5 rounded bg-[#050811] border border-slate-800 hover:border-slate-700 cursor-pointer text-xs">
             <div class="flex items-center gap-2">
               <span class="text-amber-400">✈️</span>
               <span class="font-medium text-slate-200">L-HERO (Araç/Pod)</span>
             </div>
-            <input type="checkbox" id="layer-hero" checked onchange="toggleLayer('hero', this.checked)" class="w-3.5 h-3.5 accent-cyan-500">
+            <input type="checkbox" id="layer-hero" checked onchange="toggleLayer('hero', this.checked)"
+              class="w-3.5 h-3.5 accent-cyan-500">
           </label>
 
           <!-- Layer: Surface Structures -->
-          <label class="flex items-center justify-between p-1.5 rounded bg-[#050811] border border-slate-800 hover:border-slate-700 cursor-pointer text-xs">
+          <label
+            class="flex items-center justify-between p-1.5 rounded bg-[#050811] border border-slate-800 hover:border-slate-700 cursor-pointer text-xs">
             <div class="flex items-center gap-2">
               <span class="text-emerald-400">🌉</span>
               <span class="font-medium text-slate-200">L-SURF (Köprü & Taretler)</span>
             </div>
-            <input type="checkbox" id="layer-surf" checked onchange="toggleLayer('surf', this.checked)" class="w-3.5 h-3.5 accent-cyan-500">
+            <input type="checkbox" id="layer-surf" checked onchange="toggleLayer('surf', this.checked)"
+              class="w-3.5 h-3.5 accent-cyan-500">
           </label>
 
           <!-- Layer: Shadows -->
-          <label class="flex items-center justify-between p-1.5 rounded bg-[#050811] border border-slate-800 hover:border-slate-700 cursor-pointer text-xs">
+          <label
+            class="flex items-center justify-between p-1.5 rounded bg-[#050811] border border-slate-800 hover:border-slate-700 cursor-pointer text-xs">
             <div class="flex items-center gap-2">
               <span class="text-slate-400">👥</span>
               <span class="font-medium text-slate-200">L-SHADOW (İzdüşüm)</span>
             </div>
-            <input type="checkbox" id="layer-shadow" checked onchange="toggleLayer('shadow', this.checked)" class="w-3.5 h-3.5 accent-cyan-500">
+            <input type="checkbox" id="layer-shadow" checked onchange="toggleLayer('shadow', this.checked)"
+              class="w-3.5 h-3.5 accent-cyan-500">
           </label>
 
           <!-- Layer: Water Surface -->
-          <label class="flex items-center justify-between p-1.5 rounded bg-[#050811] border border-slate-800 hover:border-slate-700 cursor-pointer text-xs">
+          <label
+            class="flex items-center justify-between p-1.5 rounded bg-[#050811] border border-slate-800 hover:border-slate-700 cursor-pointer text-xs">
             <div class="flex items-center gap-2">
               <span class="text-[#00f3ff]">🌊</span>
               <span class="font-medium text-slate-200">L-WATER (Neon Izgara)</span>
             </div>
-            <input type="checkbox" id="layer-water" checked onchange="toggleLayer('water', this.checked)" class="w-3.5 h-3.5 accent-cyan-500">
+            <input type="checkbox" id="layer-water" checked onchange="toggleLayer('water', this.checked)"
+              class="w-3.5 h-3.5 accent-cyan-500">
           </label>
 
           <!-- Layer: Submarine Trench -->
-          <label class="flex items-center justify-between p-1.5 rounded bg-[#050811] border border-slate-800 hover:border-slate-700 cursor-pointer text-xs">
+          <label
+            class="flex items-center justify-between p-1.5 rounded bg-[#050811] border border-slate-800 hover:border-slate-700 cursor-pointer text-xs">
             <div class="flex items-center gap-2">
               <span class="text-teal-400">⚓</span>
               <span class="font-medium text-slate-200">L-SUB (Derin Hendek)</span>
             </div>
-            <input type="checkbox" id="layer-sub" checked onchange="toggleLayer('sub', this.checked)" class="w-3.5 h-3.5 accent-cyan-500">
+            <input type="checkbox" id="layer-sub" checked onchange="toggleLayer('sub', this.checked)"
+              class="w-3.5 h-3.5 accent-cyan-500">
           </label>
         </div>
 
@@ -171,13 +230,16 @@
         <div class="pt-2 border-t border-slate-800/80 space-y-1.5">
           <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">İrtifa & Araç Dönüşümü:</div>
           <div class="flex gap-1 text-xs">
-            <button onclick="setAltitude(140)" class="flex-1 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded font-semibold text-[10px]">
+            <button onclick="setAltitude(140)"
+              class="flex-1 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded font-semibold text-[10px]">
               Bulut (140m)
             </button>
-            <button onclick="setAltitude(80)" class="flex-1 py-1 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded font-bold text-[10px]">
+            <button onclick="setAltitude(80)"
+              class="flex-1 py-1 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded font-bold text-[10px]">
               Uçuş (80m)
             </button>
-            <button onclick="setAltitude(-70)" class="flex-1 py-1 bg-teal-800 hover:bg-teal-700 text-teal-200 rounded font-semibold text-[10px]">
+            <button onclick="setAltitude(-70)"
+              class="flex-1 py-1 bg-teal-800 hover:bg-teal-700 text-teal-200 rounded font-semibold text-[10px]">
               Dalgıç (-70m)
             </button>
           </div>
@@ -187,8 +249,12 @@
 
       <!-- Footer: Export Stage Parameters -->
       <div class="p-3 border-t border-slate-800 bg-[#060a14] space-y-2">
-        <button onclick="exportStageParameters()" class="w-full py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs uppercase tracking-wider rounded shadow-[0_0_12px_rgba(245,158,11,0.3)] flex items-center justify-center gap-2 transition-all">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+        <button onclick="exportStageParameters()"
+          class="w-full py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs uppercase tracking-wider rounded shadow-[0_0_12px_rgba(245,158,11,0.3)] flex items-center justify-center gap-2 transition-all">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+          </svg>
           Parametreleri İndir (stage_01.json)
         </button>
         <div class="text-[9px] text-slate-500 text-center font-mono">
@@ -200,7 +266,7 @@
 
     <!-- Center Canvas Viewport -->
     <main class="flex-1 flex flex-col bg-[#050811] overflow-hidden relative">
-      
+
       <!-- Viewport Header Strip -->
       <div class="h-9 border-b border-slate-800/80 bg-[#090e1a]/90 px-4 flex items-center justify-between shrink-0">
         <div class="flex items-center gap-3 text-xs">
@@ -208,15 +274,20 @@
           <span class="text-[#00f3ff] font-mono font-bold">2.5D Diyagonal Axonometric (Y-Axis)</span>
           <span class="text-slate-600">|</span>
           <span class="text-slate-400">Tuşlar:</span>
-          <span class="text-slate-300 font-mono text-[11px]"><kbd class="bg-slate-800 px-1 py-0.5 rounded border border-slate-700">W/A/S/D</kbd> Uçuş, <kbd class="bg-slate-800 px-1 py-0.5 rounded border border-slate-700">M</kbd> Harita, <kbd class="bg-slate-800 px-1 py-0.5 rounded border border-slate-700">C</kbd> Kamera</span>
+          <span class="text-slate-300 font-mono text-[11px]"><kbd
+              class="bg-slate-800 px-1 py-0.5 rounded border border-slate-700">W/A/S/D</kbd> Uçuş, <kbd
+              class="bg-slate-800 px-1 py-0.5 rounded border border-slate-700">M</kbd> İzometrik Harita, <kbd
+              class="bg-slate-800 px-1 py-0.5 rounded border border-slate-700">C</kbd> Kamera</span>
         </div>
         <div class="flex items-center gap-4 text-xs">
           <div class="flex items-center gap-2">
             <span class="text-slate-400">Hız:</span>
-            <input type="range" id="speed-slider" min="0" max="8" step="0.5" value="3.5" oninput="updateSpeed(this.value)" class="w-20 accent-cyan-400">
+            <input type="range" id="speed-slider" min="0" max="8" step="0.5" value="3.5"
+              oninput="updateSpeed(this.value)" class="w-20 accent-cyan-400">
             <span id="speed-val" class="font-mono text-cyan-300 font-bold">3.5 px</span>
           </div>
-          <button onclick="togglePause()" id="pause-btn" class="px-2 py-0.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 rounded text-xs font-mono">
+          <button onclick="togglePause()" id="pause-btn"
+            class="px-2 py-0.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 rounded text-xs font-mono">
             ⏸ Durdur
           </button>
         </div>
@@ -224,13 +295,64 @@
 
       <!-- Canvas Area -->
       <div class="flex-1 flex items-center justify-center p-2 relative bg-[#040711]">
-        <canvas id="view" width="960" height="540" class="border border-slate-800/80 rounded shadow-2xl pixelated"></canvas>
+        <canvas id="view" width="960" height="540"
+          class="border border-slate-800/80 rounded shadow-2xl pixelated"></canvas>
 
         <!-- Boundary Reversal Alert HUD Banner -->
-        <div id="boundary-alert" class="absolute top-6 left-1/2 -translate-x-1/2 px-4 py-1.5 bg-rose-950/90 border border-rose-500 text-rose-300 font-mono font-black text-xs uppercase tracking-widest rounded shadow-[0_0_20px_rgba(244,63,94,0.6)] hidden transition-all flex items-center gap-2 animate-bounce">
+        <div id="boundary-alert"
+          class="absolute top-6 left-1/2 -translate-x-1/2 px-4 py-1.5 bg-rose-950/90 border border-rose-500 text-rose-300 font-mono font-black text-xs uppercase tracking-widest rounded shadow-[0_0_20px_rgba(244,63,94,0.6)] hidden transition-all flex items-center gap-2 animate-bounce">
           <span class="w-2 h-2 rounded-full bg-rose-500 animate-ping"></span>
           ZONE BOUNDARY: REVERSING
         </div>
+
+        <!-- 1. TUŞ GÖRSELLEŞTİRİCİSİ (INPUT VISUALIZER OVERLAY - SAĞ ALT KÖŞE) -->
+        <div class="absolute bottom-5 right-5 bg-[#070d1a]/85 border border-cyan-900/60 rounded-lg p-2.5 backdrop-blur shadow-2xl flex flex-col gap-2 pointer-events-none select-none z-20">
+          <div class="flex items-center justify-between text-[10px] font-mono text-slate-400 border-b border-slate-800/80 pb-1">
+            <span class="text-cyan-400 font-bold uppercase tracking-wider">Girdi Telemetrisi</span>
+            <span id="hud-thrust-val" class="text-amber-400 font-mono font-bold">THROTTLE: 100%</span>
+          </div>
+
+          <!-- W, A, S, D Key Grid -->
+          <div class="flex flex-col items-center gap-1">
+            <!-- W Key -->
+            <div id="key-w" class="keycap w-8 h-8 rounded bg-[#101726] border border-cyan-900/50 flex items-center justify-center text-xs font-mono font-bold text-slate-300">
+              W
+            </div>
+            <!-- A, S, D Keys -->
+            <div class="flex gap-1">
+              <div id="key-a" class="keycap w-8 h-8 rounded bg-[#101726] border border-cyan-900/50 flex items-center justify-center text-xs font-mono font-bold text-slate-300">
+                A
+              </div>
+              <div id="key-s" class="keycap w-8 h-8 rounded bg-[#101726] border border-cyan-900/50 flex items-center justify-center text-xs font-mono font-bold text-slate-300">
+                S
+              </div>
+              <div id="key-d" class="keycap w-8 h-8 rounded bg-[#101726] border border-cyan-900/50 flex items-center justify-center text-xs font-mono font-bold text-slate-300">
+                D
+              </div>
+            </div>
+            <!-- Space / Shift Key -->
+            <div class="flex gap-1 w-full mt-0.5">
+              <div id="key-shift" class="keycap flex-1 h-5 rounded bg-[#101726] border border-cyan-900/50 flex items-center justify-center text-[9px] font-mono font-bold text-slate-400">
+                SHIFT
+              </div>
+              <div id="key-space" class="keycap flex-1 h-5 rounded bg-[#101726] border border-cyan-900/50 flex items-center justify-center text-[9px] font-mono font-bold text-slate-400">
+                SPACE
+              </div>
+            </div>
+          </div>
+
+          <!-- Velocity & Thrust Mini Bar -->
+          <div class="space-y-1 pt-1 border-t border-slate-800/80">
+            <div class="flex justify-between text-[9px] font-mono text-slate-400">
+              <span>Hız Vektörü:</span>
+              <span id="hud-vel-vector" class="text-cyan-300">0.0, 0.0</span>
+            </div>
+            <div class="w-full h-1.5 bg-[#0a1222] rounded-full overflow-hidden border border-cyan-950">
+              <div id="hud-thrust-bar" class="h-full bg-gradient-to-r from-cyan-400 to-amber-400 transition-all duration-75" style="width: 50%;"></div>
+            </div>
+          </div>
+        </div>
+
       </div>
 
     </main>
@@ -257,7 +379,10 @@
       heroZ: 80,
       heroX: 0,
       heroY: 0,
-      heroHeading: Math.PI / 4, // 45 deg default (NE diagonal along Y-corridor)
+      vx: 0,
+      vy: 0,
+      targetHeading: Math.PI / 4, // 45 deg default (NE diagonal)
+      heroHeading: Math.PI / 4,
       time: 0,
       boundaryAlertTimer: 0,
       showTacticalMap: false,
@@ -277,8 +402,39 @@
     // Keyboard Input State
     const KEYS = {
       w: false, a: false, s: false, d: false,
-      ArrowUp: false, ArrowLeft: false, ArrowDown: false, ArrowRight: false
+      shift: false, space: false
     };
+
+    function updateInputVisualizer() {
+      const toggle = (id, active) => {
+        const el = document.getElementById(id);
+        if (el) {
+          if (active) el.classList.add('active');
+          else el.classList.remove('active');
+        }
+      };
+
+      toggle('key-w', KEYS.w);
+      toggle('key-a', KEYS.a);
+      toggle('key-s', KEYS.s);
+      toggle('key-d', KEYS.d);
+      toggle('key-shift', KEYS.shift);
+      toggle('key-space', KEYS.space);
+
+      // Speed & Thrust readout
+      const speedMag = Math.sqrt(STATE.vx * STATE.vx + STATE.vy * STATE.vy);
+      const thrustPct = Math.min(100, Math.round((speedMag / 8.0) * 100));
+      const velText = `${STATE.vx.toFixed(1)}, ${STATE.vy.toFixed(1)} px/f`;
+      
+      const velEl = document.getElementById('hud-vel-vector');
+      if (velEl) velEl.innerText = velText;
+
+      const barEl = document.getElementById('hud-thrust-bar');
+      if (barEl) barEl.style.width = `${Math.max(10, thrustPct)}%`;
+
+      const thrustValEl = document.getElementById('hud-thrust-val');
+      if (thrustValEl) thrustValEl.innerText = `THROTTLE: ${thrustPct}%`;
+    }
 
     window.addEventListener('keydown', (e) => {
       const k = e.key.toLowerCase();
@@ -286,10 +442,15 @@
       if (k === 's' || k === 'arrowdown') KEYS.s = true;
       if (k === 'a' || k === 'arrowleft') KEYS.a = true;
       if (k === 'd' || k === 'arrowright') KEYS.d = true;
+      if (e.shiftKey || k === 'shift') KEYS.shift = true;
+      if (k === ' ' || e.code === 'Space') {
+        KEYS.space = true;
+        togglePause();
+      }
 
       if (k === 'm') toggleTacticalMap();
       if (k === 'c') setCameraMode(STATE.cameraMode === 'rail' ? 'free' : 'rail');
-      if (k === ' ') togglePause();
+      updateInputVisualizer();
     });
 
     window.addEventListener('keyup', (e) => {
@@ -298,6 +459,9 @@
       if (k === 's' || k === 'arrowdown') KEYS.s = false;
       if (k === 'a' || k === 'arrowleft') KEYS.a = false;
       if (k === 'd' || k === 'arrowright') KEYS.d = false;
+      if (!e.shiftKey && k === 'shift') KEYS.shift = false;
+      if (k === ' ' || e.code === 'Space') KEYS.space = false;
+      updateInputVisualizer();
     });
 
     function setCameraMode(mode) {
@@ -319,7 +483,7 @@
         btnRail.className = "py-1.5 rounded text-xs font-medium text-slate-400 hover:text-slate-200";
         hudCam.innerText = "FREE";
         hudCam.className = "text-amber-400 font-bold";
-        hint.innerHTML = "• FREE: Kamera uçağı yumuşak yaylanmayla takip eder; 360° serbest uçuş.";
+        hint.innerHTML = "• FREE: Kamera uçağı yaylanmayla takip eder; heading yön vektörüne sönümlü döner.";
       }
     }
 
@@ -371,6 +535,14 @@
       }
     }
 
+    // Shortest angular difference for smooth circular lerp
+    function lerpAngle(from, to, weight) {
+      let diff = (to - from) % (Math.PI * 2);
+      if (diff < -Math.PI) diff += Math.PI * 2;
+      if (diff > Math.PI) diff -= Math.PI * 2;
+      return from + diff * weight;
+    }
+
     // --- 2.5D Orthogonal Projection Matrix with CameraX and CameraY ---
     function project(x, y, z, camX, camY) {
       const relX = x - camX;
@@ -415,57 +587,96 @@
 
           // Hero moves relative to camera viewport
           const moveSpeed = 4.2;
-          if (KEYS.a) STATE.heroX -= moveSpeed;
-          if (KEYS.d) STATE.heroX += moveSpeed;
-          if (KEYS.w) STATE.heroY += moveSpeed + STATE.speed * 0.5;
-          if (KEYS.s) STATE.heroY -= moveSpeed;
+          let targetVx = 0;
+          let targetVy = STATE.speed;
+
+          if (KEYS.a) targetVx -= moveSpeed;
+          if (KEYS.d) targetVx += moveSpeed;
+          if (KEYS.w) targetVy += moveSpeed;
+          if (KEYS.s) targetVy -= moveSpeed;
+
+          STATE.vx += (targetVx - STATE.vx) * 0.2;
+          STATE.vy += (targetVy - STATE.vy) * 0.2;
+
+          STATE.heroX += STATE.vx;
+          STATE.heroY += STATE.vy;
 
           // Rail bounds: Keep hero within screen corridor [-280, 280]
           STATE.heroX = Math.max(-280, Math.min(280, STATE.heroX));
-          // Keep hero near camera forward anchor
           const relHeroY = STATE.heroY - STATE.cameraY;
           if (relHeroY < -120) STATE.heroY = STATE.cameraY - 120;
           if (relHeroY > 220) STATE.heroY = STATE.cameraY + 220;
 
-          // Align heading along diagonal
-          STATE.heroHeading = Math.PI / 4;
+          // Align heading along diagonal with slight banking tilt
+          const bankOffset = (STATE.vx / moveSpeed) * 0.2;
+          STATE.targetHeading = (Math.PI / 4) + bankOffset;
+          STATE.heroHeading = lerpAngle(STATE.heroHeading, STATE.targetHeading, 0.15);
 
         } else {
-          // FREE MODE: 360-degree rotation and full flight
-          const turnRate = 0.06;
-          const thrust = 5.0;
+          // FREE MODE: Heading follows velocity vector (atan2) with angular lerp 0.1
+          const accel = 0.35;
+          const maxSpd = KEYS.shift ? 7.0 : 4.8;
+          let ax = 0;
+          let ay = 0;
 
-          if (KEYS.a) STATE.heroHeading -= turnRate;
-          if (KEYS.d) STATE.heroHeading += turnRate;
+          if (KEYS.a) ax -= 1;
+          if (KEYS.d) ax += 1;
+          if (KEYS.w) ay += 1;
+          if (KEYS.s) ay -= 1;
 
-          let speedMod = 1.0;
-          if (KEYS.w) speedMod = 1.5;
-          if (KEYS.s) speedMod = 0.5;
+          if (ax !== 0 || ay !== 0) {
+            const mag = Math.sqrt(ax * ax + ay * ay);
+            ax = (ax / mag) * accel;
+            ay = (ay / mag) * accel;
 
-          const vx = Math.cos(STATE.heroHeading) * thrust * speedMod;
-          const vy = Math.sin(STATE.heroHeading) * thrust * speedMod;
+            STATE.vx += ax;
+            STATE.vy += ay;
+            // Target heading aligned with movement direction
+            STATE.targetHeading = Math.atan2(STATE.vy, STATE.vx);
+          } else {
+            // Drag friction
+            STATE.vx *= 0.96;
+            STATE.vy *= 0.96;
+          }
 
-          STATE.heroX += vx;
-          STATE.heroY += vy;
+          // Speed clamp
+          const currentSpd = Math.sqrt(STATE.vx * STATE.vx + STATE.vy * STATE.vy);
+          if (currentSpd > maxSpd) {
+            STATE.vx = (STATE.vx / currentSpd) * maxSpd;
+            STATE.vy = (STATE.vy / currentSpd) * maxSpd;
+          }
+
+          STATE.heroX += STATE.vx;
+          STATE.heroY += STATE.vy;
+
+          // 4. UÇAK ROTASYONU VE İTKİ VEKTÖRÜ HİZALAMASI (HEADING LERP: 0.1)
+          if (currentSpd > 0.15) {
+            STATE.heroHeading = lerpAngle(STATE.heroHeading, STATE.targetHeading, 0.1);
+          }
 
           // Sınır Döngüsü (Boundary Bounce/Turn)
           let triggeredBoundary = false;
           if (STATE.heroX > MAP_LATERAL_HALF) {
             STATE.heroX = MAP_LATERAL_HALF - 2;
-            STATE.heroHeading = Math.PI - STATE.heroHeading;
+            STATE.vx = -Math.abs(STATE.vx) * 0.9;
+            STATE.targetHeading = Math.atan2(STATE.vy, STATE.vx);
             triggeredBoundary = true;
           } else if (STATE.heroX < -MAP_LATERAL_HALF) {
             STATE.heroX = -MAP_LATERAL_HALF + 2;
-            STATE.heroHeading = Math.PI - STATE.heroHeading;
+            STATE.vx = Math.abs(STATE.vx) * 0.9;
+            STATE.targetHeading = Math.atan2(STATE.vy, STATE.vx);
             triggeredBoundary = true;
           }
+
           if (STATE.heroY > MAP_TOTAL_LENGTH) {
             STATE.heroY = MAP_TOTAL_LENGTH - 2;
-            STATE.heroHeading = -STATE.heroHeading;
+            STATE.vy = -Math.abs(STATE.vy) * 0.9;
+            STATE.targetHeading = Math.atan2(STATE.vy, STATE.vx);
             triggeredBoundary = true;
           } else if (STATE.heroY < 0) {
             STATE.heroY = 2;
-            STATE.heroHeading = -STATE.heroHeading;
+            STATE.vy = Math.abs(STATE.vy) * 0.9;
+            STATE.targetHeading = Math.atan2(STATE.vy, STATE.vx);
             triggeredBoundary = true;
           }
 
@@ -484,6 +695,9 @@
 
         // Update Fog of War
         updateFogOfWar(STATE.heroX, STATE.heroY);
+
+        // Update Input Visualizer Telemetry
+        updateInputVisualizer();
       }
 
       // Handle Boundary Alert Timer
@@ -562,12 +776,39 @@
         renderCloudPass(ctx, cx, cy, STATE.time, STATE.heroZ);
       }
 
-      // --- KATMAN 6: TAKTİK MİNİMAP & SAVAŞ SİSİ (AÇIKSA CANVAS ORTASINDA AÇILIR) ---
+      // 3. KAMERA GÖRÜŞ ALANI (VIEWPORT FRUSTUM BOX - DÜNYA SAHNESİ İZDÜŞÜMÜ)
+      renderWorldViewportFrustum(ctx, cx, cy);
+
+      // --- KATMAN 6: 2.5D İZOMETRİK TAKTİK HARİTA & SAVAŞ SİSİ ---
       if (STATE.showTacticalMap) {
-        renderCenterTacticalMap(ctx);
+        renderIsometricTacticalMap(ctx, cx, cy);
       }
 
       requestAnimationFrame(render);
+    }
+
+    // --- 3. KAMERA GÖRÜŞ ALANI (DÜNYA SAHNESİNDEKİ VIEWPORT BOUNDING BOX) ---
+    function renderWorldViewportFrustum(c, camX, camY) {
+      c.save();
+      // Ekrana denk gelen 4 köşe dünya koordinatları (Z=0 düzleminde)
+      // Ters izdüşüm approx: Screen rect corners to ground plane
+      const pTL = project(-280 + camX, -160 + camY, 0, camX, camY);
+      const pTR = project(280 + camX, -160 + camY, 0, camX, camY);
+      const pBR = project(280 + camX, 220 + camY, 0, camX, camY);
+      const pBL = project(-280 + camX, 220 + camY, 0, camX, camY);
+
+      c.strokeStyle = 'rgba(0, 243, 255, 0.28)';
+      c.setLineDash([6, 6]);
+      c.lineWidth = 1.5;
+      c.beginPath();
+      c.moveTo(pTL.x, pTL.y);
+      c.lineTo(pTR.x, pTR.y);
+      c.lineTo(pBR.x, pBR.y);
+      c.lineTo(pBL.x, pBL.y);
+      c.closePath();
+      c.stroke();
+      c.setLineDash([]);
+      c.restore();
     }
 
     // --- 1. L-SUB: SU ALTI KANYONU VE YER ALTI TÜNELLERİ (Z < 0) ---
@@ -944,16 +1185,16 @@
       c.restore();
     }
 
-    // --- 7. TAKTİK MİNİMAP & SAVAŞ SİSİ (CANVAS ORTASINDA AÇILIR) ---
-    function renderCenterTacticalMap(c) {
+    // --- 2. İZOMETRİK TAKTİK HARİTA (ISOMETRIC RADAR PROJECTION) & FRUSTUM BOX ---
+    function renderIsometricTacticalMap(c, camX, camY) {
       c.save();
-      const mapW = 460;
-      const mapH = 380;
+      const mapW = 540;
+      const mapH = 420;
       const mapX = (W - mapW) / 2;
       const mapY = (H - mapH) / 2;
 
-      // 1. Semi-transparent Backdrop (%88 Opak)
-      c.fillStyle = 'rgba(5, 11, 24, 0.88)';
+      // 1. Semi-transparent Backdrop (%90 Opak)
+      c.fillStyle = 'rgba(5, 11, 24, 0.92)';
       c.strokeStyle = '#00f3ff';
       c.lineWidth = 2;
       c.shadowColor = '#00f3ff';
@@ -967,118 +1208,164 @@
       c.fillRect(mapX, mapY, mapW, 26);
       c.fillStyle = '#00f3ff';
       c.font = 'bold 11px monospace';
-      c.fillText('TACTICAL RADAR & ROUTE OVERLAY [STAGE 01]', mapX + 12, mapY + 17);
+      c.fillText('2.5D ISOMETRIC RADAR & TACTICAL CORRIDOR [STAGE 01]', mapX + 12, mapY + 17);
       c.fillStyle = '#94a3b8';
       c.font = '10px monospace';
       c.fillText('[M] Kapat', mapX + mapW - 65, mapY + 17);
 
-      const radarAreaX = mapX + 20;
+      const radarAreaX = mapX + 24;
       const radarAreaY = mapY + 36;
-      const radarAreaW = mapW - 40;
+      const radarAreaW = mapW - 48;
       const radarAreaH = mapH - 52;
 
-      // Radar Inner Boundary
+      // Radar Inner Boundary Clipping
+      c.save();
+      c.beginPath();
+      c.rect(radarAreaX, radarAreaY, radarAreaW, radarAreaH);
+      c.clip();
+
       c.fillStyle = '#030814';
       c.fillRect(radarAreaX, radarAreaY, radarAreaW, radarAreaH);
-      c.strokeStyle = '#0f2942';
+
+      // --- İzometrik Baklava Dönüşüm Fonksiyonu ---
+      // Harita Alanı Merkezi
+      const rCenterX = radarAreaX + radarAreaW / 2;
+      const rCenterY = radarAreaY + radarAreaH / 2;
+      const isoScaleX = 0.22;
+      const isoScaleY = 0.055;
+
+      function toIsoRadar(wx, wy) {
+        // Relatif harita kaydırması: Haritayı uçağın genel bölgesinde dengeli tut
+        const relY = wy - camY;
+        const rx = rCenterX + (wx - relY) * isoScaleX;
+        const ry = rCenterY + (wx + relY) * isoScaleY;
+        return { x: rx, y: ry };
+      }
+
+      // 1. İzometrik Baklava Izgara (Isometric Diamond Grid)
       c.lineWidth = 1;
-      c.strokeRect(radarAreaX, radarAreaY, radarAreaW, radarAreaH);
+      const stepY = 250;
+      const stepX = 120;
 
-      // Radar Grid Lines
-      c.strokeStyle = 'rgba(0, 243, 255, 0.12)';
-      for (let gx = radarAreaX; gx <= radarAreaX + radarAreaW; gx += radarAreaW / 4) {
+      for (let y = 0; y <= MAP_TOTAL_LENGTH; y += stepY) {
+        const pA = toIsoRadar(-MAP_LATERAL_HALF, y);
+        const pB = toIsoRadar(MAP_LATERAL_HALF, y);
+        c.strokeStyle = (y % 1000 === 0) ? 'rgba(0, 243, 255, 0.35)' : 'rgba(15, 41, 66, 0.4)';
         c.beginPath();
-        c.moveTo(gx, radarAreaY);
-        c.lineTo(gx, radarAreaY + radarAreaH);
-        c.stroke();
-      }
-      for (let gy = radarAreaY; gy <= radarAreaY + radarAreaH; gy += radarAreaH / 5) {
-        c.beginPath();
-        c.moveTo(radarAreaX, gy);
-        c.lineTo(radarAreaX + radarAreaW, gy);
+        c.moveTo(pA.x, pA.y);
+        c.lineTo(pB.x, pB.y);
         c.stroke();
       }
 
-      // Convert World coords to Minimap coords
-      function toMiniMap(wx, wy) {
-        const mx = radarAreaX + ((wx + MAP_LATERAL_HALF) / (MAP_LATERAL_HALF * 2)) * radarAreaW;
-        // Map Y flows upward on radar
-        const my = (radarAreaY + radarAreaH) - (wy / MAP_TOTAL_LENGTH) * radarAreaH;
-        return { x: mx, y: my };
+      for (let x = -MAP_LATERAL_HALF; x <= MAP_LATERAL_HALF; x += stepX) {
+        const pA = toIsoRadar(x, 0);
+        const pB = toIsoRadar(x, MAP_TOTAL_LENGTH);
+        c.strokeStyle = (x === 0) ? 'rgba(0, 243, 255, 0.45)' : 'rgba(15, 41, 66, 0.4)';
+        c.beginPath();
+        c.moveTo(pA.x, pA.y);
+        c.lineTo(pB.x, pB.y);
+        c.stroke();
       }
 
-      // Render Fog of War Dither Pattern
-      c.fillStyle = 'rgba(2, 6, 16, 0.72)';
-      const cellW = radarAreaW / 20;
-      const cellH = radarAreaH / 100;
+      // 2. Savaş Sisi (Fog of War) İzometrik Doku
       for (let r = 0; r < 100; r++) {
+        const wy = r * (MAP_TOTAL_LENGTH / 100);
+        if (Math.abs(wy - camY) > 2500) continue;
+
         for (let col = 0; col < 20; col++) {
           if (STATE.fogGrid[r * 20 + col] === 0) {
-            // Unexplored: Draw dark fog tile with subtle dither dot
-            const fx = radarAreaX + col * cellW;
-            const fy = (radarAreaY + radarAreaH) - (r + 1) * cellH;
-            c.fillRect(fx, fy, cellW, cellH);
+            const wx = -MAP_LATERAL_HALF + col * ((MAP_LATERAL_HALF * 2) / 20);
+            const p = toIsoRadar(wx, wy);
+            c.fillStyle = 'rgba(2, 6, 16, 0.75)';
+            c.fillRect(p.x - 4, p.y - 2, 8, 4);
           }
         }
       }
 
-      // Main Mission Route (Cyan Solid Line)
+      // 3. Ana Görev Rotası (İzometrik Cyan Çizgi)
       c.strokeStyle = '#00f3ff';
-      c.lineWidth = 2;
+      c.lineWidth = 2.5;
       c.shadowColor = '#00f3ff';
       c.shadowBlur = 8;
       c.beginPath();
-      const p0 = toMiniMap(0, 0);
-      const p1 = toMiniMap(0, MAP_TOTAL_LENGTH);
-      c.moveTo(p0.x, p0.y);
-      c.lineTo(p1.x, p1.y);
+      const rp0 = toIsoRadar(0, 0);
+      const rp1 = toIsoRadar(0, MAP_TOTAL_LENGTH);
+      c.moveTo(rp0.x, rp0.y);
+      c.lineTo(rp1.x, rp1.y);
       c.stroke();
 
-      // Secret / Bonus Corridor (Yellow Dashed Line)
+      // 4. Gizli Koridor (İzometrik Kesikli Sarı Çizgi)
       c.strokeStyle = '#f59e0b';
       c.shadowColor = '#f59e0b';
       c.shadowBlur = 8;
-      c.setLineDash([5, 5]);
+      c.setLineDash([5, 4]);
       c.beginPath();
-      const b0 = toMiniMap(140, 1500);
-      const b1 = toMiniMap(220, 2600);
-      const b2 = toMiniMap(140, 3700);
-      c.moveTo(b0.x, b0.y);
-      c.lineTo(b1.x, b1.y);
-      c.lineTo(b2.x, b2.y);
+      const rb0 = toIsoRadar(140, 1500);
+      const rb1 = toIsoRadar(220, 2600);
+      const rb2 = toIsoRadar(140, 3700);
+      c.moveTo(rb0.x, rb0.y);
+      c.lineTo(rb1.x, rb1.y);
+      c.lineTo(rb2.x, rb2.y);
       c.stroke();
       c.setLineDash([]);
       c.shadowBlur = 0;
 
-      // Legend Texts
-      c.font = '9px monospace';
-      c.fillStyle = '#00f3ff';
-      c.fillText('— ANA ROTA', radarAreaX + 8, radarAreaY + 16);
-      c.fillStyle = '#f59e0b';
-      c.fillText('- - GİZLİ KORİDOR', radarAreaX + 80, radarAreaY + 16);
+      // 3. KAMERA GÖRÜŞ ALANI (VIEWPORT FRUSTUM BOX - İZOMETRİK HARİTADA)
+      const fTL = toIsoRadar(-280 + camX, -160 + camY);
+      const fTR = toIsoRadar(280 + camX, -160 + camY);
+      const fBR = toIsoRadar(280 + camX, 220 + camY);
+      const fBL = toIsoRadar(-280 + camX, 220 + camY);
 
-      // Current Hero Aircraft Position (Neon Green Triangle)
-      const curMiniPos = toMiniMap(STATE.heroX, STATE.heroY);
+      c.strokeStyle = '#38bdf8';
+      c.fillStyle = 'rgba(56, 189, 248, 0.08)';
+      c.lineWidth = 1.5;
+      c.setLineDash([4, 4]);
+      c.beginPath();
+      c.moveTo(fTL.x, fTL.y);
+      c.lineTo(fTR.x, fTR.y);
+      c.lineTo(fBR.x, fBR.y);
+      c.lineTo(fBL.x, fBL.y);
+      c.closePath();
+      c.fill();
+      c.stroke();
+      c.setLineDash([]);
+
+      // 5. Anlık Uçak Konumu (Neon Üçgen İkon - İzometrik Açılı)
+      const curHeroIso = toIsoRadar(STATE.heroX, STATE.heroY);
       c.save();
-      c.translate(curMiniPos.x, curMiniPos.y);
-      // Hero radar angle points according to heading (rotated -90 for canvas upward 0Y)
-      c.rotate(-STATE.heroHeading + Math.PI / 2);
+      c.translate(curHeroIso.x, curHeroIso.y);
+      c.rotate(STATE.heroHeading - Math.PI / 4); // Harita 2.5D eğimiyle hizala
       c.fillStyle = '#10b981';
       c.shadowColor = '#10b981';
-      c.shadowBlur = 10;
+      c.shadowBlur = 12;
       c.beginPath();
-      c.moveTo(0, -7);
-      c.lineTo(5, 5);
-      c.lineTo(0, 3);
-      c.lineTo(-5, 5);
+      c.moveTo(9, 0);
+      c.lineTo(-6, -6);
+      c.lineTo(-3, 0);
+      c.lineTo(-6, 6);
       c.closePath();
       c.fill();
       c.restore();
 
+      c.restore(); // Clip bitişi
+
+      // Radar Çerçeve & Lejant
+      c.strokeStyle = '#00f3ff';
+      c.lineWidth = 1.5;
+      c.strokeRect(radarAreaX, radarAreaY, radarAreaW, radarAreaH);
+
+      c.font = '9px monospace';
+      c.fillStyle = '#00f3ff';
+      c.fillText('— ANA ROTA (CYAN)', radarAreaX + 10, radarAreaY + 16);
+      c.fillStyle = '#f59e0b';
+      c.fillText('- - GİZLİ KORİDOR (AMBER)', radarAreaX + 130, radarAreaY + 16);
+      c.fillStyle = '#38bdf8';
+      c.fillText('▢ KAMERA FRUSTUM', radarAreaX + 300, radarAreaY + 16);
+
       c.restore();
     }
 
-    // --- 8. LEVEL PARAMETERS EXPORT (stage_01.json) ---
+    // --- 5. SEVİYE ŞARTNAMESİ DIŞA AKTARIMI (STAGE SPEC EXPORTER: stage_01.json) ---
     function exportStageParameters() {
       const stageConfig = {
         meta: {
@@ -1114,25 +1401,38 @@
             { x: 140, y: 3700, z: -80 }
           ]
         },
+        vfx: {
+          palette: "minecraft_dungeons_neon_diorama",
+          water_color: "#040915",
+          water_reflection_neon: "#00f3ff",
+          afterburner_glow: "#ff7700",
+          pylon_anthracite: "#0f172a"
+        },
         player_state: {
           current_x: parseFloat(STATE.heroX.toFixed(2)),
           current_y: parseFloat(STATE.heroY.toFixed(2)),
           current_z: parseFloat(STATE.heroZ.toFixed(2)),
+          vx: parseFloat(STATE.vx.toFixed(2)),
+          vy: parseFloat(STATE.vy.toFixed(2)),
           heading_rad: parseFloat(STATE.heroHeading.toFixed(3))
         }
       };
 
-      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(stageConfig, null, 2));
+      // Blob ile indirme
+      const blob = new Blob([JSON.stringify(stageConfig, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
       const dlAnchor = document.createElement('a');
-      dlAnchor.setAttribute("href", dataStr);
+      dlAnchor.setAttribute("href", url);
       dlAnchor.setAttribute("download", "stage_01.json");
       document.body.appendChild(dlAnchor);
       dlAnchor.click();
       dlAnchor.remove();
+      URL.revokeObjectURL(url);
     }
 
     // Start
     requestAnimationFrame(render);
   </script>
 </body>
+
 </html>
