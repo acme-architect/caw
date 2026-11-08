@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Carrier Air Wing - 2.5D Orthogonal Scroll & Depth Testbench</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: #090d14;
+      color: #e2e8f0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      overflow: hidden;
+      user-select: none;
+    }
+
+    header {
+      width: 960px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+      padding: 0 4px;
+    }
+
+    .title {
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: #f8fafc;
+    }
+    .title span { color: #f59e0b; font-weight: 400; }
+    .badge {
+      background: #1e293b;
+      border: 1px solid #334155;
+      color: #94a3b8;
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: monospace;
+    }
+
+    /* Screen Canvas Container */
+    .viewport {
+      position: relative;
+      width: 960px;
+      height: 540px;
+      border: 2px solid #334155;
+      background: #020617;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.05);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    canvas {
+      display: block;
+      width: 960px;
+      height: 540px;
+      image-rendering: pixelated;
+    }
+
+    /* Bottom Control Bar */
+    .controls {
+      width: 960px;
+      background: #0f172a;
+      border: 1px solid #1e293b;
+      border-top: none;
+      border-radius: 0 0 6px 6px;
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      font-size: 12px;
+    }
+
+    .btn-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    button {
+      background: #1e293b;
+      color: #cbd5e1;
+      border: 1px solid #334155;
+      padding: 5px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 11px;
+      font-weight: 600;
+      transition: all 0.15s ease;
+    }
+    button:hover { background: #334155; color: #f8fafc; }
+    button.active {
+      background: #f59e0b;
+      color: #0f172a;
+      border-color: #d97706;
+      font-weight: 700;
+    }
+
+    .slider-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #94a3b8;
+    }
+    .slider-group input[type="range"] {
+      width: 130px;
+      accent-color: #f59e0b;
+      cursor: pointer;
+    }
+    .val-display {
+      font-family: monospace;
+      color: #f59e0b;
+      font-weight: 700;
+      min-width: 44px;
+    }
+
+    .hud-meta {
+      font-size: 10px;
+      color: #64748b;
+      font-family: monospace;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="title">
+      Carrier Air Wing <span>| 2.5D Orthogonal Scroll & Depth Testbench</span>
+    </div>
+    <div class="badge">Pure HTML5 Canvas 2D • Zero Dependencies • DoF = 0</div>
+  </header>
+
+  <div class="viewport">
+    <canvas id="view" width="960" height="540"></canvas>
+  </div>
+
+  <div class="controls">
+    <div class="btn-group">
+      <!-- Shadow Toggle -->
+      <button id="btn-shadow" class="active" onclick="toggleOption('shadow')">Gölge: AÇIK</button>
+      <!-- Speed Gradient Toggle -->
+      <button id="btn-gradient" class="active" onclick="toggleOption('gradient')">Hız Gradyanı (%5): AÇIK</button>
+      <!-- Angle Guide Toggle -->
+      <button id="btn-guide" onclick="toggleOption('guide')">Açı Rehberi (22.5°): KAPALI</button>
+    </div>
+
+    <!-- Scroll Speed Slider -->
+    <div class="slider-group">
+      <span>Hız:</span>
+      <input type="range" id="speed-slider" min="0" max="8" step="0.25" value="2.5" oninput="updateSpeed(this.value)">
+      <span id="speed-val" class="val-display">2.5 px</span>
+    </div>
+
+    <div class="hud-meta">
+      FPS: <span id="fps-display" style="color:#10b981;">60</span> | Resolution: 960x540
+    </div>
+  </div>
+
+  <script>
+    // --- Canvas & Simulation State ---
+    const canvas = document.getElementById('view');
+    const ctx = canvas.getContext('2d');
+
+    const STATE = {
+      baseSpeed: 2.5,
+      shadowEnabled: true,
+      gradientEnabled: true,
+      guideEnabled: false,
+      // Layer Scroll Offsets
+      offsetWater: 0,
+      offsetGround: 0,
+      offsetTops: 0,
+      time: 0,
+      // Metrics
+      fps: 60,
+      lastTimestamp: performance.now(),
+      frameCount: 0,
+      lastFpsUpdate: performance.now()
+    };
+
+    function updateSpeed(v) {
+      STATE.baseSpeed = parseFloat(v);
+      document.getElementById('speed-val').innerText = `${STATE.baseSpeed.toFixed(1)} px`;
+    }
+
+    function toggleOption(opt) {
+      if (opt === 'shadow') {
+        STATE.shadowEnabled = !STATE.shadowEnabled;
+        const btn = document.getElementById('btn-shadow');
+        btn.innerText = `Gölge: ${STATE.shadowEnabled ? 'AÇIK' : 'KAPALI'}`;
+        btn.className = STATE.shadowEnabled ? 'active' : '';
+      } else if (opt === 'gradient') {
+        STATE.gradientEnabled = !STATE.gradientEnabled;
+        const btn = document.getElementById('btn-gradient');
+        btn.innerText = `Hız Gradyanı (%5): ${STATE.gradientEnabled ? 'AÇIK' : 'KAPALI'}`;
+        btn.className = STATE.gradientEnabled ? 'active' : '';
+      } else if (opt === 'guide') {
+        STATE.guideEnabled = !STATE.guideEnabled;
+        const btn = document.getElementById('btn-guide');
+        btn.innerText = `Açı Rehberi (22.5°): ${STATE.guideEnabled ? 'AÇIK' : 'KAPALI'}`;
+        btn.className = STATE.guideEnabled ? 'active' : '';
+      }
+    }
+
+    // --- Procedural Geometry & Segment Definitions ---
+    // 22.5° Orthogonal Angle Metrics (Tan(22.5°) ~= 0.4142)
+    const ORTHO_TAN = Math.tan(22.5 * Math.PI / 180); // ~0.4142
+    const BRIDGE_SEGMENT_WIDTH = 240;
+    const NUM_BRIDGE_SEGMENTS = 6; // 6 * 240 = 1440px pool width (> 960px screen)
+
+    // --- Render Loop (requestAnimationFrame) ---
+    function render(timestamp) {
+      // Calculate FPS
+      STATE.frameCount++;
+      if (timestamp - STATE.lastFpsUpdate >= 500) {
+        STATE.fps = Math.round((STATE.frameCount * 1000) / (timestamp - STATE.lastFpsUpdate));
+        document.getElementById('fps-display').innerText = STATE.fps;
+        STATE.frameCount = 0;
+        STATE.lastFpsUpdate = timestamp;
+      }
+      STATE.lastTimestamp = timestamp;
+      STATE.time += 0.04;
+
+      // 1. Advance Layer Offsets
+      const vWater = STATE.baseSpeed * 0.8;  // Layer 0: 0.8x
+      const vGround = STATE.baseSpeed * 1.0; // Layer 1 & 2: 1.0x (Reference)
+      const vTops = STATE.gradientEnabled ? (STATE.baseSpeed * 1.05) : (STATE.baseSpeed * 1.0); // Layer 3: 1.05x
+
+      STATE.offsetWater = (STATE.offsetWater + vWater) % 960;
+      STATE.offsetGround = (STATE.offsetGround + vGround) % (NUM_BRIDGE_SEGMENTS * BRIDGE_SEGMENT_WIDTH);
+      STATE.offsetTops = (STATE.offsetTops + vTops) % (NUM_BRIDGE_SEGMENTS * BRIDGE_SEGMENT_WIDTH);
+
+      // Clear Screen
+      ctx.fillStyle = '#061325';
+      ctx.fillRect(0, 0, 960, 540);
+
+      // --- KATMAN 0: Derin Zemin / Su (0.8x Hız) ---
+      renderWaterLayer(ctx, STATE.offsetWater, STATE.time);
+
+      // --- KATMAN 1: İzdüşüm Gölgeleri (1.0x Hız, 45° Yarı Şeffaf) ---
+      if (STATE.shadowEnabled) {
+        renderShadowLayer(ctx, STATE.offsetGround, STATE.time);
+      }
+
+      // --- KATMAN 2: Ana Sahne & Zemin Damgaları (1.0x Hız) ---
+      renderBridgePiersAndBoats(ctx, STATE.offsetGround, STATE.time);
+
+      // --- KATMAN 3: Üst Yapı Gradyanı (1.05x Hız ile Yükseklik İllüzyonu) ---
+      renderBridgeUpperTowers(ctx, STATE.offsetTops, STATE.offsetGround);
+
+      // --- OPSİYONEL: 22.5° Açı Rehberi Izgarası ---
+      if (STATE.guideEnabled) {
+        renderAngleGuides(ctx);
+      }
+
+      // HUD Overlay in Canvas
+      renderInCanvasHUD(ctx);
+
+      requestAnimationFrame(render);
+    }
+
+    // --- Katman 0: Su Yüzeyi Çizimi ---
+    function renderWaterLayer(c, offset, t) {
+      // Water Gradient
+      const grad = c.createLinearGradient(0, 0, 0, 540);
+      grad.addColorStop(0, '#0a2540');
+      grad.addColorStop(0.5, '#0d3257');
+      grad.addColorStop(1, '#071b30');
+      c.fillStyle = grad;
+      c.fillRect(0, 0, 960, 540);
+
+      // Procedural Scrolling Wave Bands (0.8x)
+      c.save();
+      const waveSpacing = 32;
+      const waveRows = 20;
+
+      for (let r = 0; r < waveRows; r++) {
+        const y = 200 + r * 18;
+        const rowPhase = Math.sin(t + r * 0.4) * 4;
+        const xStart = -(offset % waveSpacing) - waveSpacing + rowPhase;
+
+        c.strokeStyle = (r % 2 === 0) ? 'rgba(56, 189, 248, 0.12)' : 'rgba(14, 165, 233, 0.08)';
+        c.lineWidth = 1.5;
+        c.beginPath();
+        for (let x = xStart; x < 960 + waveSpacing * 2; x += waveSpacing) {
+          // 22.5° angled short ripple dashes
+          c.moveTo(x, y);
+          c.lineTo(x + 16, y + 16 * ORTHO_TAN);
+        }
+        c.stroke();
+      }
+      c.restore();
+    }
+
+    // --- Katman 1: Gölge İzdüşümü (45° Projective Offset) ---
+    function renderShadowLayer(c, offset, t) {
+      c.save();
+      c.fillStyle = 'rgba(0, 0, 0, 0.38)'; // 45° Soft Deep Shadow
+
+      const totalSpan = NUM_BRIDGE_SEGMENTS * BRIDGE_SEGMENT_WIDTH;
+
+      for (let i = 0; i < NUM_BRIDGE_SEGMENTS + 2; i++) {
+        let xBase = i * BRIDGE_SEGMENT_WIDTH - (offset % totalSpan);
+        if (xBase > 960 + BRIDGE_SEGMENT_WIDTH) xBase -= totalSpan;
+
+        // Bridge Pier Projected Shadows (Cast 45° downward-left on water)
+        const pierY = 310;
+        const shadowLength = 55;
+        const sx = xBase + 40;
+        
+        c.beginPath();
+        c.moveTo(sx, pierY);
+        c.lineTo(sx - shadowLength, pierY + shadowLength * 0.8);
+        c.lineTo(sx - shadowLength + 35, pierY + shadowLength * 0.8);
+        c.lineTo(sx + 35, pierY);
+        c.closePath();
+        c.fill();
+
+        // Second twin pier shadow
+        const sx2 = sx + 75;
+        c.beginPath();
+        c.moveTo(sx2, pierY + 15);
+        c.lineTo(sx2 - shadowLength, pierY + 15 + shadowLength * 0.8);
+        c.lineTo(sx2 - shadowLength + 35, pierY + 15 + shadowLength * 0.8);
+        c.lineTo(sx2 + 35, pierY + 15);
+        c.closePath();
+        c.fill();
+      }
+
+      // Moored Boat Shadow (Follows boat bobbing)
+      const boatBaseX = 640 - (offset % totalSpan);
+      const boatY = 380 + Math.sin(t) * 2;
+      c.beginPath();
+      c.ellipse(boatBaseX - 18, boatY + 22, 58, 16, -0.2, 0, Math.PI * 2);
+      c.fill();
+
+      c.restore();
+    }
+
+    // --- Katman 2: Köprü Ayakları, Yol Tabliyesi ve Yat ---
+    function renderBridgePiersAndBoats(c, offset, t) {
+      c.save();
+      const totalSpan = NUM_BRIDGE_SEGMENTS * BRIDGE_SEGMENT_WIDTH;
+
+      for (let i = 0; i < NUM_BRIDGE_SEGMENTS + 2; i++) {
+        let xBase = i * BRIDGE_SEGMENT_WIDTH - (offset % totalSpan);
+        if (xBase > 960 + BRIDGE_SEGMENT_WIDTH) xBase -= totalSpan;
+
+        const py = 250;
+
+        // 1. Concrete Lower Piers (Zemin Seviyesi)
+        c.fillStyle = '#475569'; // Concrete Slate
+        c.fillRect(xBase + 40, py + 40, 30, 80);
+        c.fillStyle = '#334155'; // Darker face
+        c.fillRect(xBase + 62, py + 40, 8, 80);
+
+        c.fillStyle = '#475569';
+        c.fillRect(xBase + 115, py + 55, 30, 80);
+        c.fillStyle = '#334155';
+        c.fillRect(xBase + 137, py + 55, 8, 80);
+
+        // 2. Roadbed Segment (22.5° Angle Trajectory)
+        // Slanted horizontal road plane
+        c.fillStyle = '#1e293b';
+        c.beginPath();
+        c.moveTo(xBase, py);
+        c.lineTo(xBase + BRIDGE_SEGMENT_WIDTH, py + BRIDGE_SEGMENT_WIDTH * ORTHO_TAN * 0.25);
+        c.lineTo(xBase + BRIDGE_SEGMENT_WIDTH, py + 24 + BRIDGE_SEGMENT_WIDTH * ORTHO_TAN * 0.25);
+        c.lineTo(xBase, py + 24);
+        c.closePath();
+        c.fill();
+
+        // Road Curb / White Barrier Guardrail
+        c.fillStyle = '#e2e8f0';
+        c.fillRect(xBase, py - 3, BRIDGE_SEGMENT_WIDTH, 4);
+        c.fillStyle = '#94a3b8';
+        c.fillRect(xBase, py + 22, BRIDGE_SEGMENT_WIDTH, 3);
+
+        // Orthogonal Truss Bracing (X-Cross Lattice)
+        c.strokeStyle = '#64748b';
+        c.lineWidth = 2.5;
+        c.beginPath();
+        c.moveTo(xBase + 20, py + 22);
+        c.lineTo(xBase + 100, py + 60);
+        c.moveTo(xBase + 100, py + 22);
+        c.lineTo(xBase + 20, py + 60);
+        c.stroke();
+      }
+
+      // Moored Luxury Yacht / Patrol Boat (Object Floating at Y +-2px)
+      const boatX = 640 - (offset % totalSpan);
+      const boatY = 380 + Math.sin(t) * 2;
+      const boatRoll = Math.cos(t) * 0.03; // Slight pitch sway
+
+      c.save();
+      c.translate(boatX, boatY);
+      c.rotate(boatRoll);
+
+      // Hull (Naval White with Marine Blue Stripe)
+      c.fillStyle = '#f8fafc';
+      c.beginPath();
+      c.moveTo(-50, 0);
+      c.lineTo(45, -5);
+      c.lineTo(60, 5); // Bow
+      c.lineTo(45, 18);
+      c.lineTo(-50, 16);
+      c.closePath();
+      c.fill();
+      c.strokeStyle = '#cbd5e1';
+      c.lineWidth = 1.5;
+      c.stroke();
+
+      // Blue waterline stripe
+      c.fillStyle = '#0284c7';
+      c.fillRect(-48, 11, 95, 3.5);
+
+      // Cabin / Superstructure
+      c.fillStyle = '#e2e8f0';
+      c.fillRect(-25, -14, 45, 14);
+      c.fillStyle = '#0f172a'; // Windows
+      c.fillRect(-18, -10, 10, 5);
+      c.fillRect(-4, -10, 12, 5);
+      c.fillRect(12, -10, 6, 5);
+
+      // Radar Mast
+      c.strokeStyle = '#94a3b8';
+      c.lineWidth = 1.5;
+      c.beginPath();
+      c.moveTo(-5, -14);
+      c.lineTo(-5, -26);
+      c.moveTo(-10, -22);
+      c.lineTo(0, -22);
+      c.stroke();
+
+      c.restore();
+      c.restore();
+    }
+
+    // --- Katman 3: Üst Yapı Kuleleri (1.05x Hız ile Yükseklik İllüzyonu) ---
+    function renderBridgeUpperTowers(c, offsetTops, offsetGround) {
+      c.save();
+      const totalSpan = NUM_BRIDGE_SEGMENTS * BRIDGE_SEGMENT_WIDTH;
+
+      for (let i = 0; i < NUM_BRIDGE_SEGMENTS + 2; i++) {
+        // Use offsetTops for high tower pinnacle
+        let xTop = i * BRIDGE_SEGMENT_WIDTH - (offsetTops % totalSpan);
+        let xBase = i * BRIDGE_SEGMENT_WIDTH - (offsetGround % totalSpan);
+        if (xTop > 960 + BRIDGE_SEGMENT_WIDTH) xTop -= totalSpan;
+        if (xBase > 960 + BRIDGE_SEGMENT_WIDTH) xBase -= totalSpan;
+
+        // Bridge Pylon / High Towers (Every 2 segments)
+        if (i % 2 === 0) {
+          const towerBaseY = 250;
+          const towerTopY = 80;
+
+          // Main Suspension Tower Columns
+          c.fillStyle = '#cbd5e1'; // Light Steel
+          c.beginPath();
+          c.moveTo(xTop + 75, towerTopY);
+          c.lineTo(xTop + 90, towerTopY);
+          c.lineTo(xBase + 94, towerBaseY);
+          c.lineTo(xBase + 72, towerBaseY);
+          c.closePath();
+          c.fill();
+
+          // Steel Cross Struts (Horizontal Bracing)
+          c.fillStyle = '#94a3b8';
+          c.fillRect(xTop + 73, towerTopY + 40, 20, 6);
+          c.fillRect(xBase + 73, towerBaseY - 60, 21, 6);
+
+          // Tower Warning Beacon (Blinking Red)
+          const beaconPhase = Math.floor((STATE.time * 2) % 2);
+          c.fillStyle = beaconPhase === 0 ? '#ef4444' : '#7f1d1d';
+          c.beginPath();
+          c.arc(xTop + 82, towerTopY - 3, 3, 0, Math.PI * 2);
+          c.fill();
+
+          // Suspension Cables (Connecting tower top to roadbed)
+          c.strokeStyle = 'rgba(203, 213, 225, 0.45)';
+          c.lineWidth = 1.2;
+          c.beginPath();
+          c.moveTo(xTop + 82, towerTopY + 5);
+          c.lineTo(xBase - 60, towerBaseY);
+          c.moveTo(xTop + 82, towerTopY + 5);
+          c.lineTo(xBase + 210, towerBaseY + 12);
+          c.stroke();
+        }
+      }
+      c.restore();
+    }
+
+    // --- Opsiyonel: 22.5° Eksenel Açı Rehberi ---
+    function renderAngleGuides(c) {
+      c.save();
+      c.strokeStyle = 'rgba(245, 158, 11, 0.35)';
+      c.lineWidth = 1;
+      c.setLineDash([4, 6]);
+
+      for (let y = 0; y < 540; y += 70) {
+        c.beginPath();
+        c.moveTo(0, y);
+        c.lineTo(960, y + 960 * ORTHO_TAN);
+        c.stroke();
+      }
+
+      c.fillStyle = 'rgba(245, 158, 11, 0.8)';
+      c.font = '10px monospace';
+      c.fillText('ORBIT CORRIDOR AXIS: 22.5°', 16, 30);
+      c.restore();
+    }
+
+    // --- In-Canvas HUD Metrics ---
+    function renderInCanvasHUD(c) {
+      c.save();
+      c.fillStyle = 'rgba(15, 23, 42, 0.75)';
+      c.fillRect(10, 10, 260, 78);
+      c.strokeStyle = '#334155';
+      c.lineWidth = 1;
+      c.strokeRect(10, 10, 260, 78);
+
+      c.font = '10px monospace';
+      c.fillStyle = '#94a3b8';
+      c.fillText('LAYER SPEED DECOMPOSITION:', 18, 25);
+      
+      c.fillStyle = '#38bdf8';
+      c.fillText(`- L0 (Deep Water): ${(STATE.baseSpeed * 0.8).toFixed(2)} px/f (0.8x)`, 18, 40);
+      
+      c.fillStyle = '#f8fafc';
+      c.fillText(`- L1/L2 (Road/Shadow): ${(STATE.baseSpeed * 1.0).toFixed(2)} px/f (1.0x)`, 18, 54);
+      
+      const vTop = STATE.gradientEnabled ? (STATE.baseSpeed * 1.05) : (STATE.baseSpeed * 1.0);
+      c.fillStyle = STATE.gradientEnabled ? '#f59e0b' : '#64748b';
+      c.fillText(`- L3 (Upper Tower): ${vTop.toFixed(2)} px/f (${STATE.gradientEnabled ? '1.05x' : '1.0x'})`, 18, 68);
+      c.restore();
+    }
+
+    // Start Animation Loop
+    requestAnimationFrame(render);
+  </script>
+</body>
+</html>
