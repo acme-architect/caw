@@ -19,3 +19,4 @@
 
 3. **Yeniden Fırınlama Yükümlülüğü (Mandatory Re-Bake):**
    - Şantiye veya derleme boru hattı (`asm.md` / `check_assets`), bayat varlık tespit edildiğinde derhal ilgili derleme/render adımını tetikleyerek yeni çıktıyı üretmek ve güncel hash damgasını durum defterine (`state.json`) yazmakla yükümlüdür.
+

@@ -20,3 +20,4 @@
 3. **Derinlik ve Katmanlama Sıralaması (Z-Depth Sorting):**
    - Her soket noktası taşıdığı `depth_z` değeri sayesinde, aracın $360^\circ$ roll manevrası sırasında gövdenin arkasında mı yoksa önünde mi kaldığını matematiksel olarak runtime'a bildirir.
    - Arkada kalan efektler (örn. ters uçuşta üstte kalan egzoz alevi) doğru render katmanında çizilir.
+

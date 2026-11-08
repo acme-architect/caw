@@ -19,3 +19,4 @@
 
 3. **İzotropik Piksel Ölçeği:**
    - Ekranda çizilen tüm kareler piksel bazında $1:1$ en-boy oranına ve sabit pivot merkezine ($x = \text{width}/2$, $y = \text{height}/2$) sahip olmak zorundadır.
+

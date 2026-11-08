@@ -46,3 +46,13 @@
      * **Seviye 3 (Domain):** Oyun döngüsü, 60 FPS delta zamanı, ses ducking -> `.upstream/acme-games/`
      * **Seviye 4 (Evrensel):** Deterministik $DoF=0$, hash soykütüğü -> `.upstream/acme/`
 
+9. **`INV-TOOL-GRADUATION-01` (Yerel Araçların Üst Katmana Mezuniyeti - Tool Promotion):**
+   - **Yaşam Döngüsü (3 Aşama):**
+     * **Aşama 1 (Lokal İskele):** Araç `tools/` altında, doğrudan bu projeye (F-14 / asset yolları) bağlı olarak inşa edilir ve çalıştırılır.
+     * **Aşama 2 (Parametrik Ayrıştırma):** Proje tamamlanırken araç hardcoded dosya yollarından ve modele özgü değişkenlerden arındırılır; jenerik sürükle-bırak / CLI formatına getirilir.
+     * **Aşama 3 (Üst Katmana Terfi):** Genelleştirilen araç, ait olduğu katmanın kuluçka dizinine kopyalanır:
+       - Derleme ve Hash Takip Araçları (örn. `check_assets.js` / `py`) -> `.upstream/acme/tools/`
+       - 2.5D Fırınlama ve Soket Kalibratörleri (örn. `tuner.html` / `asset_viewer.html`) -> `.upstream/acme-games-iso/tools/`
+   - **Çalışma Zamanı Yalıtımı (Runtime Isolation):**
+     * `tools/` ve `.upstream/*/tools/` içindeki hiçbir araç, dağıtılacak oyunun (`src/`) nihai bundle'ına dahil edilemez (Zero-Leakage Invariant).
+
