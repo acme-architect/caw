@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,19 +9,29 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     /* Custom Scrollbar for sidebar */
-    ::-webkit-scrollbar { width: 4px; }
-    ::-webkit-scrollbar-track { background: #0f172a; }
-    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 2px; }
+    ::-webkit-scrollbar {
+      width: 4px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: #0f172a;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 2px;
+    }
   </style>
 </head>
+
 <body class="bg-slate-950 text-slate-100 flex h-screen overflow-hidden font-sans select-none">
 
   <!-- Left Sidebar Navigation -->
   <aside class="w-64 bg-slate-900 border-r border-slate-800 flex flex-col justify-between shrink-0">
-    
+
     <!-- Top Branding & Navigation -->
     <div class="flex flex-col">
-      
+
       <!-- Header / Logo -->
       <div class="p-4 border-b border-slate-800 flex items-center gap-2.5">
         <div class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse"></div>
@@ -33,13 +44,23 @@
       <!-- Tools Navigation Menu -->
       <nav class="p-3 space-y-1">
         <div class="text-[10px] font-bold text-slate-500 uppercase px-2 py-1 tracking-wider">İcra Tezgâhları</div>
-        
+
+        <!-- Tool 0: DCC Game Engine Editor (Unified Studio) -->
+        <button onclick="loadTool('studio.html', 'btn-studio')" id="btn-studio"
+          class="w-full text-left px-3 py-2 rounded text-xs font-medium flex items-center gap-2.5 transition text-cyan-300 bg-cyan-950/40 border border-cyan-800/60 hover:bg-cyan-900/50">
+          <span class="text-base">🚀</span>
+          <div class="truncate">
+            <div class="truncate font-semibold flex items-center gap-1.5">
+              <span>DCC Game Engine Studio</span>
+              <span class="text-[9px] bg-cyan-500 text-slate-950 px-1 py-0.2 rounded font-bold">IDE</span>
+            </div>
+            <div class="text-[10px] text-cyan-400 font-mono truncate">studio.html</div>
+          </div>
+        </button>
+
         <!-- Tool 1: 3D Model & Gizmo Viewer -->
-        <button 
-          onclick="loadTool('asset_viewer.html', 'btn-asset-viewer')" 
-          id="btn-asset-viewer"
-          class="w-full text-left px-3 py-2 rounded text-xs font-medium flex items-center gap-2.5 transition text-slate-300 hover:bg-slate-800 hover:text-slate-100"
-        >
+        <button onclick="loadTool('asset_viewer.html', 'btn-asset-viewer')" id="btn-asset-viewer"
+          class="w-full text-left px-3 py-2 rounded text-xs font-medium flex items-center gap-2.5 transition text-slate-300 hover:bg-slate-800 hover:text-slate-100">
           <span class="text-base">🧊</span>
           <div class="truncate">
             <div class="truncate font-semibold">3D Model & Gizmo Viewer</div>
@@ -48,11 +69,8 @@
         </button>
 
         <!-- Tool 2: 2.5D Scroll Testbench -->
-        <button 
-          onclick="loadTool('scroll_test.html', 'btn-scroll-test')" 
-          id="btn-scroll-test"
-          class="w-full text-left px-3 py-2 rounded text-xs font-medium flex items-center gap-2.5 transition text-slate-300 hover:bg-slate-800 hover:text-slate-100"
-        >
+        <button onclick="loadTool('scroll_test.html', 'btn-scroll-test')" id="btn-scroll-test"
+          class="w-full text-left px-3 py-2 rounded text-xs font-medium flex items-center gap-2.5 transition text-slate-300 hover:bg-slate-800 hover:text-slate-100">
           <span class="text-base">🌊</span>
           <div class="truncate">
             <div class="truncate font-semibold">2.5D Scroll Testbench</div>
@@ -61,32 +79,28 @@
         </button>
 
         <!-- Tool 3: Multi-Layer Map & Biome Studio -->
-        <button 
-          onclick="loadTool('map_studio.html', 'btn-map-studio')" 
-          id="btn-map-studio"
-          class="w-full text-left px-3 py-2 rounded text-xs font-medium flex items-center gap-2.5 transition text-slate-300 hover:bg-slate-800 hover:text-slate-100"
-        >
+        <button onclick="loadTool('map_studio.html', 'btn-map-studio')" id="btn-map-studio"
+          class="w-full text-left px-3 py-2 rounded text-xs font-medium flex items-center gap-2.5 transition text-slate-300 hover:bg-slate-800 hover:text-slate-100">
           <span class="text-base">🗺️</span>
           <div class="truncate">
             <div class="truncate font-semibold flex items-center gap-1.5">
               <span>Map & Layer Studio</span>
-              <span class="text-[9px] bg-cyan-950 text-cyan-400 border border-cyan-800 px-1 py-0.2 rounded font-bold">NEW</span>
+              <span
+                class="text-[9px] bg-cyan-950 text-cyan-400 border border-cyan-800 px-1 py-0.2 rounded font-bold">NEW</span>
             </div>
             <div class="text-[10px] text-slate-500 font-mono truncate">map_studio.html</div>
           </div>
         </button>
 
         <!-- Tool 4: Sockets & Tuner (Future Staging) -->
-        <button 
-          onclick="loadTool('tuner.html', 'btn-tuner')" 
-          id="btn-tuner"
-          class="w-full text-left px-3 py-2 rounded text-xs font-medium flex items-center gap-2.5 transition text-slate-400 hover:bg-slate-800/60"
-        >
+        <button onclick="loadTool('tuner.html', 'btn-tuner')" id="btn-tuner"
+          class="w-full text-left px-3 py-2 rounded text-xs font-medium flex items-center gap-2.5 transition text-slate-400 hover:bg-slate-800/60">
           <span class="text-base">🎯</span>
           <div class="truncate">
             <div class="truncate font-semibold flex items-center gap-1.5">
               <span>Sockets & Tuner</span>
-              <span class="text-[9px] bg-slate-800 text-amber-400 border border-amber-800/50 px-1 py-0.2 rounded">SOON</span>
+              <span
+                class="text-[9px] bg-slate-800 text-amber-400 border border-amber-800/50 px-1 py-0.2 rounded">SOON</span>
             </div>
             <div class="text-[10px] text-slate-500 font-mono truncate">tuner.html</div>
           </div>
@@ -99,7 +113,8 @@
     <div class="p-3 border-t border-slate-800 bg-slate-950/80 space-y-2">
       <div class="flex items-center justify-between text-[11px]">
         <span class="text-slate-400">specs/state.json:</span>
-        <span id="state-badge" class="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-950 text-emerald-400 border border-emerald-800 flex items-center gap-1">
+        <span id="state-badge"
+          class="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-950 text-emerald-400 border border-emerald-800 flex items-center gap-1">
           <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> ONLINE
         </span>
       </div>
@@ -112,7 +127,7 @@
 
   <!-- Right Viewport (Iframe Sandbox Isolation) -->
   <main class="flex-1 flex flex-col bg-slate-950 overflow-hidden relative">
-    
+
     <!-- Viewport Header Toolbar -->
     <div class="h-9 border-b border-slate-800 bg-slate-900/90 px-4 flex items-center justify-between shrink-0">
       <div class="flex items-center gap-2 text-xs">
@@ -120,10 +135,12 @@
         <strong id="active-tool-title" class="text-slate-200 font-mono text-[11px]">asset_viewer.html</strong>
       </div>
       <div class="flex items-center gap-2">
-        <button onclick="reloadCurrentIframe()" class="text-[11px] text-slate-400 hover:text-slate-200 px-2 py-0.5 rounded hover:bg-slate-800 flex items-center gap-1">
+        <button onclick="reloadCurrentIframe()"
+          class="text-[11px] text-slate-400 hover:text-slate-200 px-2 py-0.5 rounded hover:bg-slate-800 flex items-center gap-1">
           🔄 Yenile
         </button>
-        <a id="btn-open-external" href="asset_viewer.html" target="_blank" class="text-[11px] text-amber-400 hover:text-amber-300 px-2 py-0.5 rounded hover:bg-slate-800 flex items-center gap-1">
+        <a id="btn-open-external" href="asset_viewer.html" target="_blank"
+          class="text-[11px] text-amber-400 hover:text-amber-300 px-2 py-0.5 rounded hover:bg-slate-800 flex items-center gap-1">
           ↗ Yeni Sekmede Aç
         </a>
       </div>
@@ -131,12 +148,8 @@
 
     <!-- Isolated Iframe Container -->
     <div class="flex-1 w-full h-full relative bg-slate-950">
-      <iframe 
-        id="workbench-frame" 
-        src="asset_viewer.html" 
-        class="w-full h-full border-none block"
-        allow="accelerometer; camera; encrypted-media; gyroscope; picture-in-picture"
-      ></iframe>
+      <iframe id="workbench-frame" src="asset_viewer.html" class="w-full h-full border-none block"
+        allow="accelerometer; camera; encrypted-media; gyroscope; picture-in-picture"></iframe>
     </div>
 
   </main>
@@ -197,7 +210,7 @@
     // --- Initialize Workbench Launcher ---
     window.addEventListener('DOMContentLoaded', () => {
       checkStateStatus();
-      
+
       // Restore last active tool from localStorage
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
@@ -205,7 +218,7 @@
           const { toolPath, btnId } = JSON.parse(saved);
           loadTool(toolPath, btnId);
           return;
-        } catch (e) {}
+        } catch (e) { }
       }
 
       // Default: 3D Model & Gizmo Viewer
@@ -213,5 +226,5 @@
     });
   </script>
 </body>
-</html>
 
+</html>

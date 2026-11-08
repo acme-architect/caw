@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Carrier Air Wing - DCC Studio & Game Engine IDE</title>
+  <!-- DCC Studio Modular Layout Shell (Standard Unity/Unreal Topology) -->
+  <link rel="stylesheet" href="css/studio_shell.css">
+  <!-- HUD & Cross-Platform Input Engines -->
+  <script src="../src/hud_overlay.js"></script>
+  <script src="../src/input/input_manager.js"></script>
+</head>
+<body>
+
+  <!-- Master DCC Studio Layout Root -->
+  <div class="dcc-root">
+
+    <!-- 1. TOP MENU BAR (~28px) -->
+    <header class="dcc-menubar">
+      <div class="dcc-menu-group">
+        <span class="dcc-menu-item logo">
+          <span style="color: var(--accent-cyan);">◆</span> CAW ENGINE IDE
+        </span>
+        <span class="dcc-menu-item">Dosya</span>
+        <span class="dcc-menu-item">Düzenle</span>
+        <span class="dcc-menu-item">Varlıklar</span>
+        <span class="dcc-menu-item">Kamera</span>
+        <span class="dcc-menu-item">Görünüm</span>
+        <span class="dcc-menu-item">Yardım</span>
+      </div>
+
+      <div class="dcc-menu-group" style="font-family: var(--font-mono);">
+        <span style="color: var(--text-dim);">SPECS/MACRO.MD:</span>
+        <span class="dcc-badge-locked">● LOCKED (DoF = 0)</span>
+        <span style="color: var(--accent-amber);">SHA: 4df9ad61...</span>
+      </div>
+    </header>
+
+    <!-- 2. CONTROL TOOLBAR (~36px) -->
+    <section class="dcc-toolbar">
+      <!-- Left: Transform Gizmos -->
+      <div class="dcc-toolbar-group">
+        <button id="tool-select" onclick="setGizmoMode('select')" class="dcc-btn active">↖ Seç (Q)</button>
+        <button id="tool-move" onclick="setGizmoMode('move')" class="dcc-btn">✥ Taşı (W)</button>
+        <button id="tool-rotate" onclick="setGizmoMode('rotate')" class="dcc-btn">↻ Döndür (E)</button>
+        <button id="tool-scale" onclick="setGizmoMode('scale')" class="dcc-btn">⤢ Ölçekle (R)</button>
+      </div>
+
+      <!-- Center: Transform Space & Snap -->
+      <div class="dcc-toolbar-group">
+        <button id="btn-space-mode" onclick="toggleSpaceMode()" class="dcc-btn">[Eksen: World]</button>
+        <button id="btn-snap-mode" onclick="toggleSnapMode()" class="dcc-btn">[Snap: 22.5°]</button>
+        <button id="btn-grid-toggle" onclick="toggleGrid()" class="dcc-btn active">[Grid: Açık]</button>
+      </div>
+
+      <!-- Right: Playback / Simulation Controls -->
+      <div class="dcc-toolbar-group">
+        <button id="sim-play" onclick="simPlay()" class="dcc-btn play active">▶ Oyna</button>
+        <button id="sim-pause" onclick="simPause()" class="dcc-btn">⏸ Duraklat</button>
+        <button id="sim-reset" onclick="simReset()" class="dcc-btn">⏹ Sıfırla</button>
+      </div>
+    </section>
+
+    <!-- 3. MAIN WORKSPACE (3 Columns: Outliner, Viewport, Inspector) -->
+    <main class="dcc-main">
+
+      <!-- Column 1: SCENE OUTLINER (~240px) -->
+      <aside class="dcc-panel outliner">
+        <div class="dcc-panel-header">
+          <span>Hierarchy (Sahne Ağacı)</span>
+          <span style="font-size: 9px; color: var(--accent-cyan);">3 Nodes</span>
+        </div>
+        <div class="dcc-panel-body" id="outliner-tree">
+          <div class="tree-node" onclick="selectNode('stage_root')">
+            <span>▼</span> <strong>Stage 01: Regain Tokyo</strong>
+          </div>
+          <div class="tree-children">
+            <!-- Environment Subtree -->
+            <div class="tree-node" onclick="selectNode('env_root')">
+              <span>▼</span> 📁 Environment
+            </div>
+            <div class="tree-children">
+              <div class="tree-node" id="node-env-water" onclick="selectNode('env-water')">
+                <span>🌊</span> Water Surface (L-WATER)
+              </div>
+              <div class="tree-node" id="node-env-bridge" onclick="selectNode('env-bridge')">
+                <span>🌉</span> Suspension Bridge (L-SURF)
+              </div>
+              <div class="tree-node" id="node-env-trench" onclick="selectNode('env-trench')">
+                <span>⚓</span> Sub Trench (L-SUB)
+              </div>
+            </div>
+
+            <!-- Spawners Subtree -->
+            <div class="tree-node" onclick="selectNode('spawners_root')">
+              <span>▼</span> 🎯 Enemy Waves & Spawners
+            </div>
+            <div class="tree-children">
+              <div class="tree-node" id="node-enemy-mig21" onclick="selectNode('enemy-mig21')">
+                <span>✈️</span> Wave 01: MiG-21 Flight (V-Form)
+              </div>
+              <div class="tree-node" id="node-enemy-frigate" onclick="selectNode('enemy-frigate')">
+                <span>🚢</span> Mid-Boss Gunboat Frigate
+              </div>
+              <div class="tree-node" id="node-enemy-dread" onclick="selectNode('enemy-dread')">
+                <span>🛸</span> Boss: Fortress Dreadnought
+              </div>
+            </div>
+
+            <!-- Player Entity -->
+            <div class="tree-node selected" id="node-player-f14" onclick="selectNode('player-f14')">
+              <span>🛩️</span> <strong>Player: F-14 Tomcat</strong>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Column 2: MAIN VIEWPORT (Flexible Area) -->
+      <section class="dcc-viewport-area">
+        <!-- Viewport Header Strip -->
+        <div class="viewport-strip">
+          <div class="dcc-toolbar-group">
+            <span style="font-size: 10px; color: var(--text-dim); margin-right: 4px;">Kamera:</span>
+            <button id="cam-top" onclick="setCameraProj('TOP_DOWN')" class="dcc-btn">[1] Kuş Bakışı</button>
+            <button id="cam-iso" onclick="setCameraProj('ISOMETRIC_25D')" class="dcc-btn active">[2] 2.5D İzometrik</button>
+            <button id="cam-side" onclick="setCameraProj('SIDE_SCROLL_RELATIVE')" class="dcc-btn">[3] Profil</button>
+          </div>
+
+          <div style="font-family: var(--font-mono); font-size: 10px; display: flex; gap: 10px;">
+            <span id="vp-fps" style="color: var(--accent-emerald);">60.0 FPS</span>
+            <span style="color: var(--text-dim);">|</span>
+            <span id="vp-coords" style="color: var(--accent-cyan);">X: 0.0 Y: 0.0 Z: 80.0</span>
+          </div>
+        </div>
+
+        <!-- Canvas Rendering Target -->
+        <div class="viewport-canvas-wrap">
+          <canvas id="view" width="960" height="540" style="width: 100%; height: 100%; object-fit: contain;"></canvas>
+
+          <!-- On-Screen Telemetry HUD Overlay -->
+          <div style="position: absolute; bottom: 8px; left: 8px; font-family: var(--font-mono); font-size: 10px; color: rgba(255,255,255,0.4); pointer-events: none;">
+            VIEWPORT: 960x540 LOGICAL • AXONOMETRIC 2.5D ENGINE • DoF = 0
+          </div>
+        </div>
+      </section>
+
+      <!-- Column 3: INSPECTOR PANEL (~300px) -->
+      <aside class="dcc-panel inspector">
+        <div class="dcc-panel-header">
+          <span>Inspector (Özellikler)</span>
+          <span id="inspector-target-name" style="color: var(--accent-amber);">F-14 Tomcat</span>
+        </div>
+        <div class="dcc-panel-body" id="inspector-content">
+
+          <!-- 1. Transform Group -->
+          <div class="prop-group">
+            <div class="prop-group-title">Transform (Konum & Yönelim)</div>
+            <div class="prop-group-body">
+              <div class="prop-row">
+                <span class="prop-label">Position</span>
+                <div class="prop-coord-triad">
+                  <div class="coord-cell"><span class="coord-tag x">X</span><input type="number" id="insp-pos-x" value="0.0" step="1" onchange="updateSelectedTransform()"></div>
+                  <div class="coord-cell"><span class="coord-tag y">Y</span><input type="number" id="insp-pos-y" value="40.0" step="5" onchange="updateSelectedTransform()"></div>
+                  <div class="coord-cell"><span class="coord-tag z">Z</span><input type="number" id="insp-pos-z" value="80.0" step="5" onchange="updateSelectedTransform()"></div>
+                </div>
+              </div>
+
+              <div class="prop-row">
+                <span class="prop-label">Rotation</span>
+                <div class="prop-coord-triad">
+                  <div class="coord-cell"><span class="coord-tag x">P</span><input type="number" id="insp-rot-p" value="22.5" step="1" readonly></div>
+                  <div class="coord-cell"><span class="coord-tag y">Y</span><input type="number" id="insp-rot-y" value="45.0" step="22.5" onchange="updateSelectedTransform()"></div>
+                  <div class="coord-cell"><span class="coord-tag z">R</span><input type="number" id="insp-rot-r" value="0.0" step="5" onchange="updateSelectedTransform()"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 2. Material & Visual VFX Group -->
+          <div class="prop-group">
+            <div class="prop-group-title">Material & VFX (Görsel Stil)</div>
+            <div class="prop-group-body">
+              <div class="prop-row">
+                <span class="prop-label">Base Color</span>
+                <input type="color" id="insp-mat-color" value="#cbd5e1" class="prop-input" style="height: 24px; padding: 1px;" onchange="updateSelectedStyle()">
+              </div>
+              <div class="prop-row">
+                <span class="prop-label">Bloom Glow</span>
+                <input type="range" id="insp-bloom" min="0" max="25" value="14" class="prop-input" oninput="updateSelectedStyle()">
+              </div>
+              <div class="prop-row">
+                <span class="prop-label">DoubleSide</span>
+                <input type="checkbox" id="insp-doubleside" checked disabled>
+                <span style="font-size: 10px; color: var(--text-dim);">Mandatory</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 3. Logic & AI Parameters -->
+          <div class="prop-group">
+            <div class="prop-group-title">Gameplay Logic & AI</div>
+            <div class="prop-group-body">
+              <div class="prop-row">
+                <span class="prop-label">Max Velocity</span>
+                <input type="number" id="insp-speed" value="4.8" step="0.2" class="prop-input" onchange="updateSelectedLogic()">
+              </div>
+              <div class="prop-row">
+                <span class="prop-label">Health / Shield</span>
+                <input type="number" id="insp-health" value="100" class="prop-input" onchange="updateSelectedLogic()">
+              </div>
+            </div>
+          </div>
+
+          <!-- Export Specs Action -->
+          <div style="margin-top: 16px;">
+            <button onclick="exportMacroSpec()" class="dcc-btn active" style="width: 100%; justify-content: center; padding: 6px; font-size: 11px;">
+              💾 specs/macro.md Olarak Kaydet
+            </button>
+          </div>
+
+        </div>
+      </aside>
+
+    </main>
+
+    <!-- 4. BOTTOM DOCK PANEL (~180px - Tabbed) -->
+    <footer class="dcc-bottom-dock">
+      <div class="dock-tab-bar">
+        <span class="dock-tab active" id="tab-btn-timeline" onclick="switchDockTab('timeline')">⏱ Görev Zaman Çizelgesi (Timeline)</span>
+        <span class="dock-tab" id="tab-btn-assets" onclick="switchDockTab('assets')">📁 Proje Varlıkları (Asset Browser)</span>
+        <span class="dock-tab" id="tab-btn-console" onclick="switchDockTab('console')">💻 Konsol & Doğrulama</span>
+      </div>
+
+      <!-- Tab 1: Timeline -->
+      <div class="dock-content active" id="tab-content-timeline" style="position: relative; overflow-x: auto;">
+        <div style="height: 20px; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; font-family: var(--font-mono); font-size: 10px; color: var(--text-dim); padding: 0 4px;">
+          <span>00:00 [LAUNCH]</span>
+          <span>02:30 [WAVE 1]</span>
+          <span>05:00 [SUSPENSION BRIDGE]</span>
+          <span>07:30 [DREADNOUGHT]</span>
+          <span>10:00 [HANGAR LANDING]</span>
+        </div>
+        <div style="height: 80px; position: relative; background: #0c0c12; margin-top: 4px; border: 1px solid var(--border-color); border-radius: 4px; overflow: hidden;">
+          <!-- Scrubber Needle -->
+          <div id="timeline-needle" style="position: absolute; top: 0; bottom: 0; left: 10%; width: 2px; background: var(--accent-cyan); box-shadow: 0 0 8px var(--accent-cyan);"></div>
+          <!-- Milestone Blocks -->
+          <div style="position: absolute; left: 0%; width: 25%; top: 10px; height: 24px; background: rgba(56, 189, 248, 0.2); border-left: 2px solid #38bdf8; font-size: 9px; padding: 4px; color: #7dd3fc;">AÇIK OKYANUS DEVRİYESİ</div>
+          <div style="position: absolute; left: 25%; width: 30%; top: 10px; height: 24px; background: rgba(245, 158, 11, 0.2); border-left: 2px solid #f59e0b; font-size: 9px; padding: 4px; color: #fde68a;">ASMA KÖPRÜ YARMASI</div>
+          <div style="position: absolute; left: 55%; width: 25%; top: 10px; height: 24px; background: rgba(20, 184, 166, 0.2); border-left: 2px solid #14b8a6; font-size: 9px; padding: 4px; color: #99f6e4;">DENİZALTI HENDEĞİ</div>
+          <div style="position: absolute; left: 80%; width: 20%; top: 10px; height: 24px; background: rgba(168, 85, 247, 0.2); border-left: 2px solid #a855f7; font-size: 9px; padding: 4px; color: #e9d5ff;">BOĞAZİÇİ FORTRESS DREADNOUGHT</div>
+        </div>
+      </div>
+
+      <!-- Tab 2: Asset Browser -->
+      <div class="dock-content" id="tab-content-assets" style="overflow-y: auto;">
+        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px;">
+          <div style="background: var(--bg-tertiary); border: 1px solid var(--border-color); border-radius: 4px; padding: 8px; text-align: center;">
+            <div style="font-size: 24px; margin-bottom: 4px;">🛩️</div>
+            <div style="font-weight: 700; font-size: 11px;">f14.glb</div>
+            <div style="font-size: 9px; color: var(--accent-emerald);">569 KB • CLEAN</div>
+          </div>
+          <div style="background: var(--bg-tertiary); border: 1px solid var(--border-color); border-radius: 4px; padding: 8px; text-align: center;">
+            <div style="font-size: 24px; margin-bottom: 4px;">🚀</div>
+            <div style="font-weight: 700; font-size: 11px;">f18.glb</div>
+            <div style="font-size: 9px; color: var(--accent-emerald);">1.8 MB • CLEAN</div>
+          </div>
+          <div style="background: var(--bg-tertiary); border: 1px solid var(--border-color); border-radius: 4px; padding: 8px; text-align: center;">
+            <div style="font-size: 24px; margin-bottom: 4px;">🛡️</div>
+            <div style="font-weight: 700; font-size: 11px;">a10.glb</div>
+            <div style="font-size: 9px; color: var(--accent-emerald);">1.1 MB • CLEAN</div>
+          </div>
+          <div style="background: var(--bg-tertiary); border: 1px solid var(--border-color); border-radius: 4px; padding: 8px; text-align: center;">
+            <div style="font-size: 24px; margin-bottom: 4px;">🖼️</div>
+            <div style="font-weight: 700; font-size: 11px;">f14_sheet.png</div>
+            <div style="font-size: 9px; color: var(--accent-cyan);">2048x128 RGBA</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab 3: Console & Verification -->
+      <div class="dock-content" id="tab-content-console" style="overflow-y: auto; font-family: var(--font-mono); font-size: 10px; color: #a1a1aa; line-height: 1.5;">
+        <div>[PRE_FLIGHT] Verifying ACME invariants... (Standard: Lex Superior v3.2.0, DoF = 0)</div>
+        <div style="color: var(--accent-emerald);">[ASSET_DAG] Cache Hit -> assets/models/f14.glb (SHA-256 Verified)</div>
+        <div style="color: var(--accent-cyan);">[INPUT_MANAGER] Active Device: KEYBOARD (Semantic Input Engine Active)</div>
+        <div>[DCC_STUDIO] Unified IDE Shell mounted successfully with 3-camera perspective pipeline.</div>
+      </div>
+    </footer>
+
+    <!-- 5. STATUS BAR (~22px) -->
+    <div class="dcc-footer">
+      <div>Carrier Air Wing Editor • Ready</div>
+      <div>Active Selection: <span id="footer-selection" style="color: var(--accent-cyan);">Player: F-14 Tomcat</span></div>
+      <div>Resolution: 1920x1080 (Logical 960x540)</div>
+    </div>
+
+  </div>
+
+  <!-- Studio Controller Script -->
+  <script>
+    const canvas = document.getElementById('view');
+    const ctx = canvas.getContext('2d');
+    const W = 960;
+    const H = 540;
+
+    // Engines
+    const input = new CAWInputManager();
+    const hud = new CAWHudOverlay();
+
+    // Scene & Entity State
+    const SCENE = {
+      selectedNode: 'player-f14',
+      gizmoMode: 'select', // 'select' | 'move' | 'rotate' | 'scale'
+      spaceMode: 'world',  // 'world' | 'local'
+      snapAngle: 22.5,
+      gridEnabled: true,
+      simulationRunning: true,
+      cameraProj: 'ISOMETRIC_25D', // 'TOP_DOWN' | 'ISOMETRIC_25D' | 'SIDE_SCROLL_RELATIVE'
+      cameraX: 0,
+      cameraY: 0,
+      speed: 3.5,
+      totalLength: 5000,
+      time: 0,
+      entities: {
+        'player-f14': {
+          name: 'Player: F-14 Tomcat',
+          x: 0.0, y: 40.0, z: 80.0,
+          heading: Math.PI / 4,
+          color: '#cbd5e1',
+          bloom: 14,
+          speed: 4.8,
+          health: 100
+        },
+        'env-bridge': {
+          name: 'Suspension Bridge (L-SURF)',
+          x: 0.0, y: 1500.0, z: 60.0,
+          heading: 0,
+          color: '#334155',
+          bloom: 8,
+          speed: 0,
+          health: 9999
+        },
+        'enemy-mig21': {
+          name: 'MiG-21 Squadron',
+          x: 60.0, y: 600.0, z: 80.0,
+          heading: -Math.PI / 4,
+          color: '#ef4444',
+          bloom: 10,
+          speed: 3.0,
+          health: 40
+        }
+      }
+    };
+
+    // --- Outliner Selection Logic ---
+    function selectNode(nodeId) {
+      if (!SCENE.entities[nodeId] && nodeId !== 'stage_root' && nodeId !== 'env_root' && nodeId !== 'spawners_root') return;
+
+      document.querySelectorAll('.tree-node').forEach(el => el.classList.remove('selected'));
+      const targetEl = document.getElementById(`node-${nodeId}`);
+      if (targetEl) targetEl.classList.add('selected');
+
+      SCENE.selectedNode = nodeId;
+      const entity = SCENE.entities[nodeId] || { name: nodeId, x: 0, y: 0, z: 0, heading: 0, color: '#94a3b8', bloom: 10, speed: 0, health: 100 };
+
+      // Update Inspector Fields
+      document.getElementById('inspector-target-name').innerText = entity.name;
+      document.getElementById('footer-selection').innerText = entity.name;
+      document.getElementById('insp-pos-x').value = entity.x.toFixed(1);
+      document.getElementById('insp-pos-y').value = entity.y.toFixed(1);
+      document.getElementById('insp-pos-z').value = entity.z.toFixed(1);
+      document.getElementById('insp-rot-y').value = (entity.heading * (180 / Math.PI)).toFixed(1);
+      document.getElementById('insp-mat-color').value = entity.color;
+      document.getElementById('insp-bloom').value = entity.bloom;
+      document.getElementById('insp-speed').value = entity.speed;
+      document.getElementById('insp-health').value = entity.health;
+    }
+
+    function updateSelectedTransform() {
+      const e = SCENE.entities[SCENE.selectedNode];
+      if (!e) return;
+      e.x = parseFloat(document.getElementById('insp-pos-x').value) || 0;
+      e.y = parseFloat(document.getElementById('insp-pos-y').value) || 0;
+      e.z = parseFloat(document.getElementById('insp-pos-z').value) || 0;
+      const deg = parseFloat(document.getElementById('insp-rot-y').value) || 0;
+      e.heading = deg * (Math.PI / 180);
+    }
+
+    function updateSelectedStyle() {
+      const e = SCENE.entities[SCENE.selectedNode];
+      if (!e) return;
+      e.color = document.getElementById('insp-mat-color').value;
+      e.bloom = parseInt(document.getElementById('insp-bloom').value, 10);
+    }
+
+    function updateSelectedLogic() {
+      const e = SCENE.entities[SCENE.selectedNode];
+      if (!e) return;
+      e.speed = parseFloat(document.getElementById('insp-speed').value) || 0;
+      e.health = parseInt(document.getElementById('insp-health').value, 10) || 100;
+    }
+
+    // --- Toolbar & Gizmo Mode Controls ---
+    function setGizmoMode(mode) {
+      SCENE.gizmoMode = mode;
+      ['select', 'move', 'rotate', 'scale'].forEach(m => {
+        const btn = document.getElementById(`tool-${m}`);
+        if (btn) btn.className = (m === mode) ? 'dcc-btn active' : 'dcc-btn';
+      });
+    }
+
+    function toggleSpaceMode() {
+      SCENE.spaceMode = (SCENE.spaceMode === 'world') ? 'local' : 'world';
+      document.getElementById('btn-space-mode').innerText = `[Eksen: ${SCENE.spaceMode.toUpperCase()}]`;
+    }
+
+    function toggleSnapMode() {
+      SCENE.snapAngle = (SCENE.snapAngle === 22.5) ? 45.0 : (SCENE.snapAngle === 45.0 ? 0 : 22.5);
+      document.getElementById('btn-snap-mode').innerText = `[Snap: ${SCENE.snapAngle > 0 ? SCENE.snapAngle + '°' : 'Kapalı'}]`;
+    }
+
+    function toggleGrid() {
+      SCENE.gridEnabled = !SCENE.gridEnabled;
+      const btn = document.getElementById('btn-grid-toggle');
+      btn.innerText = `[Grid: ${SCENE.gridEnabled ? 'Açık' : 'Kapalı'}]`;
+      if (SCENE.gridEnabled) btn.classList.add('active');
+      else btn.classList.remove('active');
+    }
+
+    function simPlay() {
+      SCENE.simulationRunning = true;
+      document.getElementById('sim-play').classList.add('active');
+      document.getElementById('sim-pause').classList.remove('active');
+    }
+
+    function simPause() {
+      SCENE.simulationRunning = false;
+      document.getElementById('sim-play').classList.remove('active');
+      document.getElementById('sim-pause').classList.add('active');
+    }
+
+    function simReset() {
+      SCENE.cameraY = 0;
+      const p = SCENE.entities['player-f14'];
+      if (p) { p.x = 0; p.y = 40; p.z = 80; p.heading = Math.PI / 4; }
+      selectNode(SCENE.selectedNode);
+    }
+
+    // --- Viewport Camera Projections ---
+    function setCameraProj(mode) {
+      SCENE.cameraProj = mode;
+      document.getElementById('cam-top').className = (mode === 'TOP_DOWN') ? 'dcc-btn active' : 'dcc-btn';
+      document.getElementById('cam-iso').className = (mode === 'ISOMETRIC_25D') ? 'dcc-btn active' : 'dcc-btn';
+      document.getElementById('cam-side').className = (mode === 'SIDE_SCROLL_RELATIVE') ? 'dcc-btn active' : 'dcc-btn';
+    }
+
+    // --- Bottom Dock Tabs ---
+    function switchDockTab(tabId) {
+      ['timeline', 'assets', 'console'].forEach(t => {
+        document.getElementById(`tab-btn-${t}`).classList.remove('active');
+        document.getElementById(`tab-content-${t}`).classList.remove('active');
+      });
+      document.getElementById(`tab-btn-${tabId}`).classList.add('active');
+      document.getElementById(`tab-content-${tabId}`).classList.add('active');
+    }
+
+    // --- 2.5D Projection Pipeline ---
+    function project(x, y, z, camX, camY) {
+      const relX = x - camX;
+      const relY = y - camY;
+
+      if (SCENE.cameraProj === 'TOP_DOWN') {
+        return { x: W / 2 + relX * 1.5, y: H / 2 - relY * 0.9 };
+      } else if (SCENE.cameraProj === 'SIDE_SCROLL_RELATIVE') {
+        const p = SCENE.entities['player-f14'];
+        const ang = p ? p.heading : Math.PI / 4;
+        const forward = relX * Math.cos(ang) + relY * Math.sin(ang);
+        const lateral = -relX * Math.sin(ang) + relY * Math.cos(ang);
+        return { x: W / 2 + forward * 1.4, y: H / 2 - z * 1.6 + lateral * 0.4 };
+      } else {
+        // Standard ISOMETRIC_25D
+        return {
+          x: W / 2 + (relX - relY) * 1.5,
+          y: H / 2 + (relX + relY) * 0.75 - z * 1.2
+        };
+      }
+    }
+
+    // --- Main Studio Render Loop ---
+    function renderStudio() {
+      input.update();
+
+      const player = SCENE.entities['player-f14'];
+
+      if (SCENE.simulationRunning) {
+        SCENE.time += 0.04;
+        SCENE.cameraY = (SCENE.cameraY + SCENE.speed) % SCENE.totalLength;
+
+        // Player Controls via InputManager
+        const m = input.getMovementVector();
+        player.x += m.x * player.speed;
+        player.y += (m.y * player.speed) + SCENE.speed;
+        if (Math.abs(m.x) > 0.1 || Math.abs(m.y) > 0.1) {
+          player.heading = Math.atan2(m.y, m.x);
+        }
+
+        // Camera smoothly follows player
+        SCENE.cameraX += (player.x - SCENE.cameraX) * 0.08;
+      }
+
+      // Update Timeline Scrubber
+      const tRatio = (SCENE.cameraY / SCENE.totalLength) * 100;
+      document.getElementById('timeline-needle').style.left = `${tRatio.toFixed(1)}%`;
+
+      // Update Viewport HUD Telemetry
+      document.getElementById('vp-coords').innerText = `X: ${player.x.toFixed(1)} Y: ${player.y.toFixed(1)} Z: ${player.z.toFixed(1)}`;
+
+      // 1. Clear Screen
+      ctx.fillStyle = '#050c18';
+      ctx.fillRect(0, 0, W, H);
+
+      const cx = SCENE.cameraX;
+      const cy = SCENE.cameraY;
+
+      // 2. Grid Plane (If enabled)
+      if (SCENE.gridEnabled) {
+        ctx.strokeStyle = 'rgba(0, 243, 255, 0.12)';
+        ctx.lineWidth = 1;
+        const gSize = 80;
+        const startY = Math.floor(cy / gSize) * gSize - gSize * 4;
+        const endY = startY + gSize * 16;
+        for (let gx = -400; gx <= 400; gx += gSize) {
+          const p0 = project(gx, startY, 0, cx, cy);
+          const p1 = project(gx, endY, 0, cx, cy);
+          ctx.beginPath();
+          ctx.moveTo(p0.x, p0.y);
+          ctx.lineTo(p1.x, p1.y);
+          ctx.stroke();
+        }
+      }
+
+      // 3. Render Entities (Player & Environment)
+      // Suspension Bridge Deck
+      const b0 = project(-30, 1400, 60, cx, cy);
+      const b1 = project(30, 1400, 60, cx, cy);
+      const b2 = project(30, 2600, 60, cx, cy);
+      const b3 = project(-30, 2600, 60, cx, cy);
+      ctx.fillStyle = '#1e293b';
+      ctx.strokeStyle = '#475569';
+      ctx.beginPath();
+      ctx.moveTo(b0.x, b0.y); ctx.lineTo(b1.x, b1.y); ctx.lineTo(b2.x, b2.y); ctx.lineTo(b3.x, b3.y);
+      ctx.closePath();
+      ctx.fill(); ctx.stroke();
+
+      // Render Player (F-14)
+      const pPos = project(player.x, player.y, player.z, cx, cy);
+      ctx.save();
+      ctx.translate(pPos.x, pPos.y);
+      ctx.rotate(player.heading - Math.PI / 4);
+
+      // Shadow
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+      ctx.beginPath();
+      ctx.ellipse(0, player.z * 0.4, 28, 12, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Fuselage
+      ctx.fillStyle = player.color;
+      ctx.strokeStyle = '#00f3ff';
+      ctx.lineWidth = (SCENE.selectedNode === 'player-f14') ? 2 : 1;
+      ctx.beginPath();
+      ctx.moveTo(20, 0);
+      ctx.lineTo(-14, 10);
+      ctx.lineTo(-14, -10);
+      ctx.closePath();
+      ctx.fill(); ctx.stroke();
+
+      // Afterburner Glow
+      ctx.fillStyle = '#ff7700';
+      ctx.shadowColor = '#ff7700';
+      ctx.shadowBlur = player.bloom;
+      ctx.beginPath();
+      ctx.arc(-16, -4, 4, 0, Math.PI * 2);
+      ctx.arc(-16, 4, 4, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      ctx.restore();
+
+      // 4. Render Active Gizmo on Selected Entity
+      if (SCENE.selectedNode === 'player-f14') {
+        ctx.save();
+        ctx.translate(pPos.x, pPos.y);
+        ctx.lineWidth = 2;
+        // X Axis Gizmo (Red)
+        ctx.strokeStyle = '#f43f5e';
+        ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(35, 0); ctx.stroke();
+        // Y Axis Gizmo (Green)
+        ctx.strokeStyle = '#10b981';
+        ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, -35); ctx.stroke();
+        ctx.restore();
+      }
+
+      requestAnimationFrame(renderStudio);
+    }
+
+    // --- Export Specs Action ---
+    function exportMacroSpec() {
+      const e = SCENE.entities['player-f14'];
+      const macroExport = `# EXPORTED STAGE MACRO (from DCC Studio IDE)\n\n` +
+        `player_entity:\n` +
+        `  position: [${e.x.toFixed(1)}, ${e.y.toFixed(1)}, ${e.z.toFixed(1)}]\n` +
+        `  heading_deg: ${(e.heading * 180 / Math.PI).toFixed(1)}\n` +
+        `  speed: ${e.speed}\n` +
+        `  health: ${e.health}\n` +
+        `camera:\n` +
+        `  mode: ${SCENE.cameraProj}\n` +
+        `  speed: ${SCENE.speed}\n`;
+
+      const blob = new Blob([macroExport], { type: 'text/markdown' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'macro.md';
+      a.click();
+    }
+
+    // Start
+    requestAnimationFrame(renderStudio);
+  </script>
+</body>
+</html>
