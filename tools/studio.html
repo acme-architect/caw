@@ -1,115 +1,156 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Carrier Air Wing - DCC Studio & Game Engine IDE</title>
-  <!-- DCC Studio Modular Layout Shell (Standard Unity/Unreal Topology) -->
+  <title>Carrier Air Wing - DCC Studio IDE (Data-Driven Rail & Entity Cards)</title>
+  <!-- Zero-External UI Dependency: Pure Modular CSS Shell -->
   <link rel="stylesheet" href="css/studio_shell.css">
-  <!-- HUD & Cross-Platform Input Engines -->
-  <script src="../src/hud_overlay.js"></script>
+  <style>
+    /* Entity Card Badge Styles */
+    .entity-badge {
+      display: inline-block;
+      font-size: 9px;
+      font-family: var(--font-mono);
+      padding: 1px 4px;
+      border-radius: 2px;
+      background: rgba(0, 243, 255, 0.1);
+      color: var(--accent-cyan);
+      border: 1px solid rgba(0, 243, 255, 0.3);
+    }
+    .entity-badge.env {
+      background: rgba(245, 158, 11, 0.1);
+      color: var(--accent-amber);
+      border-color: rgba(245, 158, 11, 0.3);
+    }
+    .socket-tag {
+      background: #1e1e28;
+      border: 1px solid #2e2e3d;
+      padding: 2px 4px;
+      font-size: 10px;
+      font-family: var(--font-mono);
+      border-radius: 3px;
+      margin-bottom: 3px;
+      display: flex;
+      justify-content: space-between;
+    }
+    .fork-indicator {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #f59e0b;
+      margin-right: 4px;
+      animation: pulse 1s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+  </style>
+  <!-- Input Manager and HUD Overlay -->
   <script src="../src/input/input_manager.js"></script>
+  <script src="../src/hud_overlay.js"></script>
 </head>
+
 <body>
 
-  <!-- Master DCC Studio Layout Root -->
   <div class="dcc-root">
 
     <!-- 1. TOP MENU BAR (~28px) -->
-    <header class="dcc-menubar">
-      <div class="dcc-menu-group">
-        <span class="dcc-menu-item logo">
-          <span style="color: var(--accent-cyan);">◆</span> CAW ENGINE IDE
-        </span>
-        <span class="dcc-menu-item">Dosya</span>
-        <span class="dcc-menu-item">Düzenle</span>
-        <span class="dcc-menu-item">Varlıklar</span>
-        <span class="dcc-menu-item">Kamera</span>
-        <span class="dcc-menu-item">Görünüm</span>
-        <span class="dcc-menu-item">Yardım</span>
+    <header class="dcc-menu-bar">
+      <div class="menu-items">
+        <span class="app-title">Carrier Air Wing • Studio IDE</span>
+        <div class="menu-item">[Dosya]</div>
+        <div class="menu-item">[Düzenle]</div>
+        <div class="menu-item">[Varlıklar]</div>
+        <div class="menu-item">[Görünüm]</div>
+        <div class="menu-item">[Oynat]</div>
+        <div class="menu-item">[Yardım]</div>
       </div>
-
-      <div class="dcc-menu-group" style="font-family: var(--font-mono);">
-        <span style="color: var(--text-dim);">SPECS/MACRO.MD:</span>
-        <span class="dcc-badge-locked">● LOCKED (DoF = 0)</span>
-        <span style="color: var(--accent-amber);">SHA: 4df9ad61...</span>
+      <div class="menu-status">
+        <span class="status-badge live">● LIVE WORKBENCH</span>
+        <span class="status-badge" style="color: var(--accent-cyan);">ENTITY CARD ENGINE</span>
+        <span class="status-badge" id="macro-status-badge">specs/macro.md (LOCKED · SHA 4b8d91c)</span>
       </div>
     </header>
 
     <!-- 2. CONTROL TOOLBAR (~36px) -->
-    <section class="dcc-toolbar">
-      <!-- Left: Transform Gizmos -->
+    <nav class="dcc-toolbar">
+      <!-- Transform Gizmos -->
       <div class="dcc-toolbar-group">
-        <button id="tool-select" onclick="setGizmoMode('select')" class="dcc-btn active">↖ Seç (Q)</button>
-        <button id="tool-move" onclick="setGizmoMode('move')" class="dcc-btn">✥ Taşı (W)</button>
-        <button id="tool-rotate" onclick="setGizmoMode('rotate')" class="dcc-btn">↻ Döndür (E)</button>
-        <button id="tool-scale" onclick="setGizmoMode('scale')" class="dcc-btn">⤢ Ölçekle (R)</button>
+        <button id="tool-select" onclick="setGizmoMode('select')" class="dcc-btn active" title="Select (Q)">[Q] Seç</button>
+        <button id="tool-move" onclick="setGizmoMode('move')" class="dcc-btn" title="Translate / Move (W)">[W] Taşı</button>
+        <button id="tool-rotate" onclick="setGizmoMode('rotate')" class="dcc-btn" title="Rotate (E)">[E] Döndür</button>
+        <button id="tool-scale" onclick="setGizmoMode('scale')" class="dcc-btn" title="Scale (R)">[R] Ölçekle</button>
       </div>
 
-      <!-- Center: Transform Space & Snap -->
+      <!-- Coordinate Space & Snapping -->
       <div class="dcc-toolbar-group">
-        <button id="btn-space-mode" onclick="toggleSpaceMode()" class="dcc-btn">[Eksen: World]</button>
+        <button id="btn-space-mode" onclick="toggleSpaceMode()" class="dcc-btn">[Eksen: WORLD]</button>
         <button id="btn-snap-mode" onclick="toggleSnapMode()" class="dcc-btn">[Snap: 22.5°]</button>
         <button id="btn-grid-toggle" onclick="toggleGrid()" class="dcc-btn active">[Grid: Açık]</button>
+        <button id="btn-rail-mode" onclick="toggleFlightMode()" class="dcc-btn active" style="color: var(--accent-cyan);">[Mod: RAY TEĞETİ]</button>
       </div>
 
-      <!-- Right: Playback / Simulation Controls -->
+      <!-- Simulation Playback -->
       <div class="dcc-toolbar-group">
-        <button id="sim-play" onclick="simPlay()" class="dcc-btn play active">▶ Oyna</button>
-        <button id="sim-pause" onclick="simPause()" class="dcc-btn">⏸ Duraklat</button>
-        <button id="sim-reset" onclick="simReset()" class="dcc-btn">⏹ Sıfırla</button>
+        <button id="sim-play" onclick="simPlay()" class="dcc-btn active" style="color: var(--accent-emerald);">[▶ Oynat]</button>
+        <button id="sim-pause" onclick="simPause()" class="dcc-btn" style="color: var(--accent-amber);">[⏸ Duraklat]</button>
+        <button id="sim-reset" onclick="simReset()" class="dcc-btn" style="color: var(--accent-rose);">[⏹ Sıfırla]</button>
       </div>
-    </section>
 
-    <!-- 3. MAIN WORKSPACE (3 Columns: Outliner, Viewport, Inspector) -->
-    <main class="dcc-main">
+      <div style="margin-left: auto; display: flex; align-items: center; gap: 8px;">
+        <span style="font-size: 11px; color: var(--text-dim);">Dallanma (Q / E veya A / D):</span>
+        <button onclick="triggerFork('LEFT')" class="dcc-btn" id="btn-fork-left">◀ Sol Çatal (-45°)</button>
+        <button onclick="triggerFork('CENTER')" class="dcc-btn active" id="btn-fork-center">▲ Düz Rota</button>
+        <button onclick="triggerFork('RIGHT')" class="dcc-btn" id="btn-fork-right">Sağ Çatal (+45°) ▶</button>
+      </div>
+    </nav>
 
-      <!-- Column 1: SCENE OUTLINER (~240px) -->
+    <!-- 3. MAIN WORKSPACE: 3 COLUMNS -->
+    <main class="dcc-main-workspace">
+
+      <!-- Column 1: SCENE OUTLINER PANEL (~240px) -->
       <aside class="dcc-panel outliner">
         <div class="dcc-panel-header">
-          <span>Hierarchy (Sahne Ağacı)</span>
-          <span style="font-size: 9px; color: var(--accent-cyan);">3 Nodes</span>
+          <span>Outliner (Varlık Hiyerarşisi)</span>
+          <span style="color: var(--accent-cyan); font-size: 10px;" id="outliner-entity-count">5 Varlık</span>
         </div>
-        <div class="dcc-panel-body" id="outliner-tree">
-          <div class="tree-node" onclick="selectNode('stage_root')">
-            <span>▼</span> <strong>Stage 01: Regain Tokyo</strong>
-          </div>
-          <div class="tree-children">
-            <!-- Environment Subtree -->
-            <div class="tree-node" onclick="selectNode('env_root')">
-              <span>▼</span> 📁 Environment
+        <div class="dcc-panel-body">
+          <div class="dcc-tree" id="outliner-tree">
+            <!-- Stage Hierarchy Root -->
+            <div class="tree-node expanded" id="node-stage-root">
+              <span>🌐</span> <strong>Stage 01: Bosporus Strait</strong>
             </div>
-            <div class="tree-children">
-              <div class="tree-node" id="node-env-water" onclick="selectNode('env-water')">
-                <span>🌊</span> Water Surface (L-WATER)
+
+            <!-- Environment Subtree -->
+            <div style="padding-left: 14px;">
+              <div class="tree-node" id="node-env_bosphorus_bridge" onclick="selectNode('env_bosphorus_bridge')">
+                <span>🌉</span> <strong>env_bosphorus_bridge</strong> <span class="entity-badge env">JSON CARD</span>
               </div>
-              <div class="tree-node" id="node-env-bridge" onclick="selectNode('env-bridge')">
-                <span>🌉</span> Suspension Bridge (L-SURF)
-              </div>
-              <div class="tree-node" id="node-env-trench" onclick="selectNode('env-trench')">
-                <span>⚓</span> Sub Trench (L-SUB)
+              <div class="tree-node" id="node-env-carrier" onclick="selectNode('env-carrier')">
+                <span>⚓</span> USS Carl Vinson (CVN-70)
               </div>
             </div>
 
-            <!-- Spawners Subtree -->
-            <div class="tree-node" onclick="selectNode('spawners_root')">
-              <span>▼</span> 🎯 Enemy Waves & Spawners
+            <!-- Spawners & Enemies Subtree -->
+            <div class="tree-node expanded" id="node-spawners-root">
+              <span>🎯</span> <strong>Spawners & Düşmanlar</strong>
             </div>
-            <div class="tree-children">
+            <div style="padding-left: 14px;">
               <div class="tree-node" id="node-enemy-mig21" onclick="selectNode('enemy-mig21')">
                 <span>✈️</span> Wave 01: MiG-21 Flight (V-Form)
               </div>
               <div class="tree-node" id="node-enemy-frigate" onclick="selectNode('enemy-frigate')">
                 <span>🚢</span> Mid-Boss Gunboat Frigate
               </div>
-              <div class="tree-node" id="node-enemy-dread" onclick="selectNode('enemy-dread')">
-                <span>🛸</span> Boss: Fortress Dreadnought
-              </div>
             </div>
 
             <!-- Player Entity -->
-            <div class="tree-node selected" id="node-player-f14" onclick="selectNode('player-f14')">
-              <span>🛩️</span> <strong>Player: F-14 Tomcat</strong>
+            <div class="tree-node selected" id="node-player_f14" onclick="selectNode('player_f14')">
+              <span>🛩️</span> <strong>player_f14</strong> <span class="entity-badge">JSON CARD</span>
             </div>
           </div>
         </div>
@@ -126,10 +167,14 @@
             <button id="cam-side" onclick="setCameraProj('SIDE_SCROLL_RELATIVE')" class="dcc-btn">[3] Profil</button>
           </div>
 
-          <div style="font-family: var(--font-mono); font-size: 10px; display: flex; gap: 10px;">
+          <div style="font-family: var(--font-mono); font-size: 10px; display: flex; gap: 10px; align-items: center;">
+            <span id="vp-bank" style="color: var(--accent-amber);">Bank: 0.0°</span>
+            <span style="color: var(--text-dim);">|</span>
+            <span id="vp-heading" style="color: #a78bfa;">Yaw: 45.0° (Teğet Kilitli)</span>
+            <span style="color: var(--text-dim);">|</span>
             <span id="vp-fps" style="color: var(--accent-emerald);">60.0 FPS</span>
             <span style="color: var(--text-dim);">|</span>
-            <span id="vp-coords" style="color: var(--accent-cyan);">X: 0.0 Y: 0.0 Z: 80.0</span>
+            <span id="vp-coords" style="color: var(--accent-cyan);">X: 0.0 Y: 40.0 Z: 80.0</span>
           </div>
         </div>
 
@@ -139,7 +184,12 @@
 
           <!-- On-Screen Telemetry HUD Overlay -->
           <div style="position: absolute; bottom: 8px; left: 8px; font-family: var(--font-mono); font-size: 10px; color: rgba(255,255,255,0.4); pointer-events: none;">
-            VIEWPORT: 960x540 LOGICAL • AXONOMETRIC 2.5D ENGINE • DoF = 0
+            VIEWPORT: 960x540 LOGICAL • TANGENT-ALIGNED RAIL FLIGHT • DoF = 0
+          </div>
+
+          <!-- Active Fork Guidance Pill -->
+          <div id="fork-guidance" style="position: absolute; top: 12px; right: 12px; background: rgba(18, 18, 24, 0.85); border: 1px solid rgba(245, 158, 11, 0.5); border-radius: 4px; padding: 4px 8px; font-family: var(--font-mono); font-size: 11px; color: #fde68a; display: flex; align-items: center;">
+            <span class="fork-indicator"></span> Çatal Kılavuzu: [A/Q: Sol -45°] [D/E: Sağ +45°]
           </div>
         </div>
       </section>
@@ -147,14 +197,29 @@
       <!-- Column 3: INSPECTOR PANEL (~300px) -->
       <aside class="dcc-panel inspector">
         <div class="dcc-panel-header">
-          <span>Inspector (Özellikler)</span>
-          <span id="inspector-target-name" style="color: var(--accent-amber);">F-14 Tomcat</span>
+          <span>Inspector (Varlık Kartı)</span>
+          <span id="inspector-target-name" style="color: var(--accent-amber);">player_f14.json</span>
         </div>
         <div class="dcc-panel-body" id="inspector-content">
 
-          <!-- 1. Transform Group -->
+          <!-- 1. Entity Card Meta Group -->
           <div class="prop-group">
-            <div class="prop-group-title">Transform (Konum & Yönelim)</div>
+            <div class="prop-group-title">Varlık Kimliği (Entity Card Source)</div>
+            <div class="prop-group-body">
+              <div class="prop-row">
+                <span class="prop-label">ID / Spec</span>
+                <span id="insp-card-id" style="font-family: var(--font-mono); font-size: 11px; color: var(--accent-cyan);">specs/entities/player_f14.json</span>
+              </div>
+              <div class="prop-row">
+                <span class="prop-label">Varlık Tipi</span>
+                <span id="insp-card-type" style="font-family: var(--font-mono); font-size: 10px; color: var(--accent-amber);">aircraft_player</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 2. Transform Group -->
+          <div class="prop-group">
+            <div class="prop-group-title">Transform (Konum, Yaw & Bank)</div>
             <div class="prop-group-body">
               <div class="prop-row">
                 <span class="prop-label">Position</span>
@@ -168,15 +233,31 @@
               <div class="prop-row">
                 <span class="prop-label">Rotation</span>
                 <div class="prop-coord-triad">
-                  <div class="coord-cell"><span class="coord-tag x">P</span><input type="number" id="insp-rot-p" value="22.5" step="1" readonly></div>
-                  <div class="coord-cell"><span class="coord-tag y">Y</span><input type="number" id="insp-rot-y" value="45.0" step="22.5" onchange="updateSelectedTransform()"></div>
-                  <div class="coord-cell"><span class="coord-tag z">R</span><input type="number" id="insp-rot-r" value="0.0" step="5" onchange="updateSelectedTransform()"></div>
+                  <div class="coord-cell"><span class="coord-tag x">P</span><input type="number" id="insp-rot-p" value="0.0" step="1" readonly></div>
+                  <div class="coord-cell"><span class="coord-tag y">Yaw</span><input type="number" id="insp-rot-y" value="45.0" step="5" onchange="updateSelectedTransform()"></div>
+                  <div class="coord-cell"><span class="coord-tag z">Roll</span><input type="number" id="insp-rot-r" value="0.0" step="5" onchange="updateSelectedTransform()"></div>
                 </div>
               </div>
             </div>
           </div>
 
-          <!-- 2. Material & Visual VFX Group -->
+          <!-- 3. Dynamic Card Parameters (Flight Limits / Sockets) -->
+          <div class="prop-group" id="group-card-params">
+            <div class="prop-group-title">Kart Parametreleri & Uçuş Limitleri</div>
+            <div class="prop-group-body" id="card-params-container">
+              <!-- Dynamically populated from JSON -->
+            </div>
+          </div>
+
+          <!-- 4. Sockets & Hardpoints Container -->
+          <div class="prop-group" id="group-card-sockets">
+            <div class="prop-group-title">Soketler & Silah İstasyonları</div>
+            <div class="prop-group-body" id="card-sockets-container">
+              <!-- Dynamically populated from JSON -->
+            </div>
+          </div>
+
+          <!-- 5. Material & Visual VFX Group -->
           <div class="prop-group">
             <div class="prop-group-title">Material & VFX (Görsel Stil)</div>
             <div class="prop-group-body">
@@ -187,26 +268,6 @@
               <div class="prop-row">
                 <span class="prop-label">Bloom Glow</span>
                 <input type="range" id="insp-bloom" min="0" max="25" value="14" class="prop-input" oninput="updateSelectedStyle()">
-              </div>
-              <div class="prop-row">
-                <span class="prop-label">DoubleSide</span>
-                <input type="checkbox" id="insp-doubleside" checked disabled>
-                <span style="font-size: 10px; color: var(--text-dim);">Mandatory</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- 3. Logic & AI Parameters -->
-          <div class="prop-group">
-            <div class="prop-group-title">Gameplay Logic & AI</div>
-            <div class="prop-group-body">
-              <div class="prop-row">
-                <span class="prop-label">Max Velocity</span>
-                <input type="number" id="insp-speed" value="4.8" step="0.2" class="prop-input" onchange="updateSelectedLogic()">
-              </div>
-              <div class="prop-row">
-                <span class="prop-label">Health / Shield</span>
-                <input type="number" id="insp-health" value="100" class="prop-input" onchange="updateSelectedLogic()">
               </div>
             </div>
           </div>
@@ -245,51 +306,61 @@
           <div id="timeline-needle" style="position: absolute; top: 0; bottom: 0; left: 10%; width: 2px; background: var(--accent-cyan); box-shadow: 0 0 8px var(--accent-cyan);"></div>
           <!-- Milestone Blocks -->
           <div style="position: absolute; left: 0%; width: 25%; top: 10px; height: 24px; background: rgba(56, 189, 248, 0.2); border-left: 2px solid #38bdf8; font-size: 9px; padding: 4px; color: #7dd3fc;">AÇIK OKYANUS DEVRİYESİ</div>
-          <div style="position: absolute; left: 25%; width: 30%; top: 10px; height: 24px; background: rgba(245, 158, 11, 0.2); border-left: 2px solid #f59e0b; font-size: 9px; padding: 4px; color: #fde68a;">ASMA KÖPRÜ YARMASI</div>
+          <div style="position: absolute; left: 25%; width: 30%; top: 10px; height: 24px; background: rgba(245, 158, 11, 0.2); border-left: 2px solid #f59e0b; font-size: 9px; padding: 4px; color: #fde68a;">ASMA KÖPRÜ YARMASI (env_bosphorus_bridge)</div>
           <div style="position: absolute; left: 55%; width: 25%; top: 10px; height: 24px; background: rgba(20, 184, 166, 0.2); border-left: 2px solid #14b8a6; font-size: 9px; padding: 4px; color: #99f6e4;">DENİZALTI HENDEĞİ</div>
           <div style="position: absolute; left: 80%; width: 20%; top: 10px; height: 24px; background: rgba(168, 85, 247, 0.2); border-left: 2px solid #a855f7; font-size: 9px; padding: 4px; color: #e9d5ff;">BOĞAZİÇİ FORTRESS DREADNOUGHT</div>
         </div>
       </div>
 
-      <!-- Tab 2: Asset Browser -->
-      <div class="dock-content" id="tab-content-assets" style="overflow-y: auto;">
-        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px;">
-          <div style="background: var(--bg-tertiary); border: 1px solid var(--border-color); border-radius: 4px; padding: 8px; text-align: center;">
-            <div style="font-size: 24px; margin-bottom: 4px;">🛩️</div>
-            <div style="font-weight: 700; font-size: 11px;">f14.glb</div>
-            <div style="font-size: 9px; color: var(--accent-emerald);">569 KB • CLEAN</div>
+      <!-- Tab 2: Assets Browser -->
+      <div class="dock-content" id="tab-content-assets">
+        <div class="dcc-asset-grid">
+          <div class="dcc-asset-card selected">
+            <div class="asset-card-thumb">🛩️</div>
+            <div class="asset-card-name">player_f14.json</div>
+            <div class="asset-card-type">Aircraft Entity Card</div>
           </div>
-          <div style="background: var(--bg-tertiary); border: 1px solid var(--border-color); border-radius: 4px; padding: 8px; text-align: center;">
-            <div style="font-size: 24px; margin-bottom: 4px;">🚀</div>
-            <div style="font-weight: 700; font-size: 11px;">f18.glb</div>
-            <div style="font-size: 9px; color: var(--accent-emerald);">1.8 MB • CLEAN</div>
+          <div class="dcc-asset-card">
+            <div class="asset-card-thumb">🌉</div>
+            <div class="asset-card-name">env_bosphorus_bridge.json</div>
+            <div class="asset-card-type">Structure Entity Card</div>
           </div>
-          <div style="background: var(--bg-tertiary); border: 1px solid var(--border-color); border-radius: 4px; padding: 8px; text-align: center;">
-            <div style="font-size: 24px; margin-bottom: 4px;">🛡️</div>
-            <div style="font-weight: 700; font-size: 11px;">a10.glb</div>
-            <div style="font-size: 9px; color: var(--accent-emerald);">1.1 MB • CLEAN</div>
+          <div class="dcc-asset-card">
+            <div class="asset-card-thumb">🧊</div>
+            <div class="asset-card-name">f14_mesh.obj</div>
+            <div class="asset-card-type">Wavefront 3D OBJ</div>
           </div>
-          <div style="background: var(--bg-tertiary); border: 1px solid var(--border-color); border-radius: 4px; padding: 8px; text-align: center;">
-            <div style="font-size: 24px; margin-bottom: 4px;">🖼️</div>
-            <div style="font-weight: 700; font-size: 11px;">f14_sheet.png</div>
-            <div style="font-size: 9px; color: var(--accent-cyan);">2048x128 RGBA</div>
+          <div class="dcc-asset-card">
+            <div class="asset-card-thumb">🖼️</div>
+            <div class="asset-card-name">f14_sheet.png</div>
+            <div class="asset-card-type">RGBA Spritesheet</div>
+          </div>
+          <div class="dcc-asset-card">
+            <div class="asset-card-thumb">🗺️</div>
+            <div class="asset-card-name">map_layer_architecture.md</div>
+            <div class="asset-card-type">Stage Layer Spec</div>
           </div>
         </div>
       </div>
 
-      <!-- Tab 3: Console & Verification -->
-      <div class="dock-content" id="tab-content-console" style="overflow-y: auto; font-family: var(--font-mono); font-size: 10px; color: #a1a1aa; line-height: 1.5;">
-        <div>[PRE_FLIGHT] Verifying ACME invariants... (Standard: Lex Superior v3.2.0, DoF = 0)</div>
-        <div style="color: var(--accent-emerald);">[ASSET_DAG] Cache Hit -> assets/models/f14.glb (SHA-256 Verified)</div>
-        <div style="color: var(--accent-cyan);">[INPUT_MANAGER] Active Device: KEYBOARD (Semantic Input Engine Active)</div>
-        <div>[DCC_STUDIO] Unified IDE Shell mounted successfully with 3-camera perspective pipeline.</div>
+      <!-- Tab 3: Console Logs -->
+      <div class="dock-content" id="tab-content-console">
+        <div style="font-family: var(--font-mono); font-size: 11px; line-height: 1.6; color: #a1a1aa;">
+          <div style="color: var(--accent-emerald);">[INIT] DCC Studio Layout mounted. Grid/Flexbox topology loaded successfully.</div>
+          <div style="color: var(--accent-cyan);">[ENTITY_LOADER] specs/entities/player_f14.json loaded and bound.</div>
+          <div style="color: var(--accent-cyan);">[ENTITY_LOADER] specs/entities/env_bosphorus_bridge.json loaded and bound.</div>
+          <div style="color: var(--accent-amber);">[RAIL_ENGINE] Multi-branch waypoint spline generated. Tangent orientation lock active.</div>
+          <div>[INPUT] CAWInputManager ready (Keyboard & Gamepad listener initialized).</div>
+          <div>[HUD] CAWHudOverlay initialized. Ready for simulation loop.</div>
+        </div>
       </div>
     </footer>
 
     <!-- 5. STATUS BAR (~22px) -->
     <div class="dcc-footer">
       <div>Carrier Air Wing Editor • Ready</div>
-      <div>Active Selection: <span id="footer-selection" style="color: var(--accent-cyan);">Player: F-14 Tomcat</span></div>
+      <div>Active Selection: <span id="footer-selection" style="color: var(--accent-cyan);">player_f14</span></div>
+      <div>Flight Mode: <span id="footer-flight-mode" style="color: var(--accent-amber);">Rail Spline (Tangent Lock)</span></div>
       <div>Resolution: 1920x1080 (Logical 960x540)</div>
     </div>
 
@@ -306,73 +377,309 @@
     const input = new CAWInputManager();
     const hud = new CAWHudOverlay();
 
+    // Utility: Lerp Angle with wrapping
+    function lerpAngle(a, b, t) {
+      let diff = (b - a) % (Math.PI * 2);
+      if (diff < -Math.PI) diff += Math.PI * 2;
+      if (diff > Math.PI) diff -= Math.PI * 2;
+      return a + diff * t;
+    }
+
+    // --- Spline & Rail Multi-Branch Engine ---
+    class RailSplineTrack {
+      constructor(totalLength) {
+        this.totalLength = totalLength;
+        // Primary main center track
+        this.activeBranch = 'CENTER'; // 'LEFT' | 'CENTER' | 'RIGHT'
+        this.targetBranch = 'CENTER';
+        this.lateralOffset = 0.0;
+        this.targetLateralOffset = 0.0;
+      }
+
+      setBranch(branch) {
+        this.targetBranch = branch;
+        if (branch === 'LEFT') {
+          this.targetLateralOffset = -120.0;
+        } else if (branch === 'RIGHT') {
+          this.targetLateralOffset = 120.0;
+        } else {
+          this.targetLateralOffset = 0.0;
+        }
+      }
+
+      // Base spine trajectory
+      getBasePointAt(progressDist) {
+        const p = (progressDist % this.totalLength);
+        // Base S-curve along the strait corridor
+        const baseX = Math.sin(p * 0.002) * 80.0 + Math.sin(p * 0.0006) * 140.0;
+        const baseY = p;
+        const baseZ = 80.0 + Math.cos(p * 0.003) * 15.0;
+        return { x: baseX, y: baseY, z: baseZ };
+      }
+
+      getPointAt(progressDist, lateralShift) {
+        const delta = 1.0;
+        const p0 = this.getBasePointAt(progressDist);
+        const p1 = this.getBasePointAt(progressDist + delta);
+        
+        // Base Tangent
+        const dx = p1.x - p0.x;
+        const dy = p1.y - p0.y;
+        const len = Math.hypot(dx, dy) || 1;
+        const nx = -dy / len;
+        const ny = dx / len;
+
+        return {
+          x: p0.x + nx * lateralShift,
+          y: p0.y + ny * lateralShift,
+          z: p0.z
+        };
+      }
+
+      getTangentAt(progressDist, lateralShift) {
+        const delta = 2.0;
+        const pPrev = this.getPointAt(progressDist - delta, lateralShift);
+        const pNext = this.getPointAt(progressDist + delta, lateralShift);
+        const tx = pNext.x - pPrev.x;
+        const ty = pNext.y - pPrev.y;
+        const len = Math.hypot(tx, ty) || 1;
+        return { x: tx / len, y: ty / len };
+      }
+    }
+
+    const railTrack = new RailSplineTrack(5000);
+
     // Scene & Entity State
     const SCENE = {
-      selectedNode: 'player-f14',
+      selectedNode: 'player_f14',
       gizmoMode: 'select', // 'select' | 'move' | 'rotate' | 'scale'
       spaceMode: 'world',  // 'world' | 'local'
       snapAngle: 22.5,
       gridEnabled: true,
       simulationRunning: true,
+      flightMode: 'RAIL_TANGENT', // 'RAIL_TANGENT' | 'FREE_FLIGHT'
       cameraProj: 'ISOMETRIC_25D', // 'TOP_DOWN' | 'ISOMETRIC_25D' | 'SIDE_SCROLL_RELATIVE'
       cameraX: 0,
       cameraY: 0,
-      speed: 3.5,
+      speed: 4.2,
+      progress: 40.0,
+      bankAngle: 0.0, // Roll: ±35° bank angle
       totalLength: 5000,
       time: 0,
-      entities: {
-        'player-f14': {
-          name: 'Player: F-14 Tomcat',
-          x: 0.0, y: 40.0, z: 80.0,
-          heading: Math.PI / 4,
-          color: '#cbd5e1',
-          bloom: 14,
-          speed: 4.8,
-          health: 100
-        },
-        'env-bridge': {
-          name: 'Suspension Bridge (L-SURF)',
-          x: 0.0, y: 1500.0, z: 60.0,
-          heading: 0,
-          color: '#334155',
-          bloom: 8,
-          speed: 0,
-          health: 9999
-        },
-        'enemy-mig21': {
+      entityCards: {}, // Raw JSON spec cards loaded via fetch
+      entities: {}     // Live instantiated entity representations
+    };
+
+    // --- Data-Driven Entity Loader ---
+    async function loadEntityCards() {
+      const cardFiles = [
+        { id: 'player_f14', path: '../specs/entities/player_f14.json' },
+        { id: 'env_bosphorus_bridge', path: '../specs/entities/env_bosphorus_bridge.json' }
+      ];
+
+      for (const card of cardFiles) {
+        try {
+          const resp = await fetch(card.path);
+          if (resp.ok) {
+            const data = await resp.json();
+            SCENE.entityCards[card.id] = data;
+            instantiateEntityFromCard(card.id, data);
+            console.log(`[ENTITY_LOADER] Successfully loaded entity card: ${card.id}`);
+          } else {
+            console.warn(`[ENTITY_LOADER] Failed to fetch ${card.path}, falling back to built-in schema.`);
+            fallbackEntityInstantiation(card.id);
+          }
+        } catch (err) {
+          console.warn(`[ENTITY_LOADER] Fetch error for ${card.path}: ${err}. Using fallback schema.`);
+          fallbackEntityInstantiation(card.id);
+        }
+      }
+
+      // Add other non-card entities for stage context
+      if (!SCENE.entities['enemy-mig21']) {
+        SCENE.entities['enemy-mig21'] = {
+          id: 'enemy-mig21',
           name: 'MiG-21 Squadron',
+          type: 'aircraft_enemy',
           x: 60.0, y: 600.0, z: 80.0,
           heading: -Math.PI / 4,
+          bank: 0,
           color: '#ef4444',
           bloom: 10,
           speed: 3.0,
           health: 40
-        }
+        };
       }
-    };
+
+      // Initial Selection & Inspector population
+      selectNode(SCENE.selectedNode);
+    }
+
+    function instantiateEntityFromCard(id, card) {
+      if (id === 'player_f14') {
+        SCENE.entities[id] = {
+          id: id,
+          card: card,
+          name: card.name,
+          type: card.type,
+          x: 0.0,
+          y: 40.0,
+          z: 80.0,
+          heading: Math.PI / 4,
+          bank: 0.0,
+          color: '#cbd5e1',
+          bloom: 14,
+          speed: (card.flight_limits && card.flight_limits.cruise_speed_knots) ? card.flight_limits.cruise_speed_knots / 120 : 4.8,
+          health: (card.flight_limits && card.flight_limits.max_shield) ? card.flight_limits.max_shield : 100,
+          limits: card.flight_limits,
+          sockets: card.sockets
+        };
+      } else if (id === 'env_bosphorus_bridge') {
+        SCENE.entities[id] = {
+          id: id,
+          card: card,
+          name: card.name,
+          type: card.type,
+          x: 0.0,
+          y: 1500.0,
+          z: (card.geometry_25d && card.geometry_25d.deck_elevation_m) ? card.geometry_25d.deck_elevation_m : 64.0,
+          heading: 0,
+          bank: 0,
+          color: (card.geometry_25d && card.geometry_25d.color_palette) ? card.geometry_25d.color_palette.deck : '#334155',
+          bloom: 8,
+          speed: 0,
+          health: 5000,
+          geometry: card.geometry_25d,
+          defense_sockets: card.defense_sockets
+        };
+      }
+    }
+
+    function fallbackEntityInstantiation(id) {
+      if (id === 'player_f14') {
+        instantiateEntityFromCard('player_f14', {
+          id: 'player_f14',
+          name: 'F-14 Tomcat (Player)',
+          type: 'aircraft_player',
+          flight_limits: {
+            cruise_speed_knots: 650,
+            bank_angle_limit_deg: 35.0,
+            max_shield: 100
+          },
+          sockets: {
+            engine_L: { x: -1.2, y: -0.2, z: -3.8, purpose: "afterburner_exhaust" },
+            engine_R: { x: 1.2, y: -0.2, z: -3.8, purpose: "afterburner_exhaust" },
+            gun_muzzle: { x: -0.5, y: -0.1, z: 3.2, purpose: "m61_vulcan_20mm" }
+          }
+        });
+      } else if (id === 'env_bosphorus_bridge') {
+        instantiateEntityFromCard('env_bosphorus_bridge', {
+          id: 'env_bosphorus_bridge',
+          name: 'Bosphorus Suspension Bridge',
+          type: 'environment_structure',
+          geometry_25d: {
+            deck_elevation_m: 64.0,
+            total_length_m: 1560,
+            color_palette: { deck: '#30363d' }
+          },
+          defense_sockets: {
+            flak_battery_tower_north: { x: -25.0, y: 64.0, z: -200.0, type: "aa_flak_88mm" }
+          }
+        });
+      }
+    }
 
     // --- Outliner Selection Logic ---
     function selectNode(nodeId) {
-      if (!SCENE.entities[nodeId] && nodeId !== 'stage_root' && nodeId !== 'env_root' && nodeId !== 'spawners_root') return;
-
+      SCENE.selectedNode = nodeId;
       document.querySelectorAll('.tree-node').forEach(el => el.classList.remove('selected'));
       const targetEl = document.getElementById(`node-${nodeId}`);
       if (targetEl) targetEl.classList.add('selected');
 
-      SCENE.selectedNode = nodeId;
-      const entity = SCENE.entities[nodeId] || { name: nodeId, x: 0, y: 0, z: 0, heading: 0, color: '#94a3b8', bloom: 10, speed: 0, health: 100 };
+      const entity = SCENE.entities[nodeId] || {
+        name: nodeId,
+        type: 'generic_entity',
+        x: 0, y: 0, z: 0,
+        heading: 0, bank: 0,
+        color: '#94a3b8',
+        bloom: 10,
+        speed: 0,
+        health: 100
+      };
 
-      // Update Inspector Fields
-      document.getElementById('inspector-target-name').innerText = entity.name;
-      document.getElementById('footer-selection').innerText = entity.name;
+      // Update Inspector Headers
+      document.getElementById('inspector-target-name').innerText = entity.name || nodeId;
+      document.getElementById('footer-selection').innerText = entity.id || nodeId;
+      document.getElementById('insp-card-id').innerText = entity.card ? `specs/entities/${entity.id}.json` : 'Built-in node';
+      document.getElementById('insp-card-type').innerText = entity.type || 'generic';
+
+      // Update Transform Fields
       document.getElementById('insp-pos-x').value = entity.x.toFixed(1);
       document.getElementById('insp-pos-y').value = entity.y.toFixed(1);
       document.getElementById('insp-pos-z').value = entity.z.toFixed(1);
       document.getElementById('insp-rot-y').value = (entity.heading * (180 / Math.PI)).toFixed(1);
-      document.getElementById('insp-mat-color').value = entity.color;
-      document.getElementById('insp-bloom').value = entity.bloom;
-      document.getElementById('insp-speed').value = entity.speed;
-      document.getElementById('insp-health').value = entity.health;
+      document.getElementById('insp-rot-r').value = (entity.bank * (180 / Math.PI)).toFixed(1);
+      document.getElementById('insp-mat-color').value = entity.color || '#cbd5e1';
+      document.getElementById('insp-bloom').value = entity.bloom || 10;
+
+      // Render Dynamic Card Parameters
+      renderCardInspectorParameters(entity);
+    }
+
+    function renderCardInspectorParameters(entity) {
+      const paramContainer = document.getElementById('card-params-container');
+      const socketContainer = document.getElementById('card-sockets-container');
+      paramContainer.innerHTML = '';
+      socketContainer.innerHTML = '';
+
+      if (entity.limits) {
+        paramContainer.innerHTML = `
+          <div class="prop-row"><span class="prop-label">Seyir Hızı</span><input type="number" id="insp-speed-val" value="${entity.limits.cruise_speed_knots || 650}" class="prop-input" onchange="updateLiveLimits('speed')"></div>
+          <div class="prop-row"><span class="prop-label">Maks Bank</span><input type="number" id="insp-bank-val" value="${entity.limits.bank_angle_limit_deg || 35}" class="prop-input" onchange="updateLiveLimits('bank')"></div>
+          <div class="prop-row"><span class="prop-label">Kalkan / HP</span><input type="number" id="insp-shield-val" value="${entity.limits.max_shield || 100}" class="prop-input" onchange="updateLiveLimits('shield')"></div>
+        `;
+      } else if (entity.geometry) {
+        paramContainer.innerHTML = `
+          <div class="prop-row"><span class="prop-label">Yol Kotu (m)</span><span style="font-family: var(--font-mono); font-size: 11px; color: var(--accent-amber);">${entity.geometry.deck_elevation_m} m</span></div>
+          <div class="prop-row"><span class="prop-label">Pilon Boyu</span><span style="font-family: var(--font-mono); font-size: 11px; color: var(--text-dim);">${entity.geometry.pylon_height_m || 165} m</span></div>
+          <div class="prop-row"><span class="prop-label">Köprü Boyu</span><span style="font-family: var(--font-mono); font-size: 11px; color: var(--text-dim);">${entity.geometry.total_length_m || 1560} m</span></div>
+        `;
+      } else {
+        paramContainer.innerHTML = `<span style="font-size: 10px; color: var(--text-dim);">Özel JSON parametresi tanımlanmamış.</span>`;
+      }
+
+      // Render Sockets
+      const sockets = entity.sockets || entity.defense_sockets;
+      if (sockets) {
+        let sockHtml = '';
+        for (const [key, s] of Object.entries(sockets)) {
+          const info = s.purpose || s.type || 'mount';
+          sockHtml += `
+            <div class="socket-tag">
+              <span style="color: var(--accent-cyan); font-weight: 600;">${key}</span>
+              <span style="color: var(--text-dim);">${info} [${s.x}, ${s.y}, ${s.z}]</span>
+            </div>
+          `;
+        }
+        socketContainer.innerHTML = sockHtml;
+      } else {
+        socketContainer.innerHTML = `<span style="font-size: 10px; color: var(--text-dim);">Soket / Hardpoint bulunmuyor.</span>`;
+      }
+    }
+
+    function updateLiveLimits(prop) {
+      const e = SCENE.entities[SCENE.selectedNode];
+      if (!e || !e.limits) return;
+      if (prop === 'speed') {
+        const val = parseFloat(document.getElementById('insp-speed-val').value) || 650;
+        e.limits.cruise_speed_knots = val;
+        e.speed = val / 120;
+      } else if (prop === 'bank') {
+        e.limits.bank_angle_limit_deg = parseFloat(document.getElementById('insp-bank-val').value) || 35.0;
+      } else if (prop === 'shield') {
+        e.limits.max_shield = parseInt(document.getElementById('insp-shield-val').value, 10) || 100;
+        e.health = e.limits.max_shield;
+      }
     }
 
     function updateSelectedTransform() {
@@ -381,8 +688,8 @@
       e.x = parseFloat(document.getElementById('insp-pos-x').value) || 0;
       e.y = parseFloat(document.getElementById('insp-pos-y').value) || 0;
       e.z = parseFloat(document.getElementById('insp-pos-z').value) || 0;
-      const deg = parseFloat(document.getElementById('insp-rot-y').value) || 0;
-      e.heading = deg * (Math.PI / 180);
+      e.heading = (parseFloat(document.getElementById('insp-rot-y').value) || 0) * (Math.PI / 180);
+      e.bank = (parseFloat(document.getElementById('insp-rot-r').value) || 0) * (Math.PI / 180);
     }
 
     function updateSelectedStyle() {
@@ -392,14 +699,23 @@
       e.bloom = parseInt(document.getElementById('insp-bloom').value, 10);
     }
 
-    function updateSelectedLogic() {
-      const e = SCENE.entities[SCENE.selectedNode];
-      if (!e) return;
-      e.speed = parseFloat(document.getElementById('insp-speed').value) || 0;
-      e.health = parseInt(document.getElementById('insp-health').value, 10) || 100;
+    // --- Toolbar & Fork Logic ---
+    function triggerFork(branch) {
+      railTrack.setBranch(branch);
+      ['LEFT', 'CENTER', 'RIGHT'].forEach(b => {
+        const btn = document.getElementById(`btn-fork-${b.toLowerCase()}`);
+        if (btn) btn.className = (b === branch) ? 'dcc-btn active' : 'dcc-btn';
+      });
+      console.log(`[RAIL_SPLINE] Fork waypoint selected: ${branch}`);
     }
 
-    // --- Toolbar & Gizmo Mode Controls ---
+    function toggleFlightMode() {
+      SCENE.flightMode = (SCENE.flightMode === 'RAIL_TANGENT') ? 'FREE_FLIGHT' : 'RAIL_TANGENT';
+      const btn = document.getElementById('btn-rail-mode');
+      btn.innerText = `[Mod: ${SCENE.flightMode === 'RAIL_TANGENT' ? 'RAY TEĞETİ' : 'SERBEST UÇUŞ'}]`;
+      document.getElementById('footer-flight-mode').innerText = SCENE.flightMode;
+    }
+
     function setGizmoMode(mode) {
       SCENE.gizmoMode = mode;
       ['select', 'move', 'rotate', 'scale'].forEach(m => {
@@ -439,9 +755,16 @@
     }
 
     function simReset() {
+      SCENE.progress = 40.0;
       SCENE.cameraY = 0;
-      const p = SCENE.entities['player-f14'];
-      if (p) { p.x = 0; p.y = 40; p.z = 80; p.heading = Math.PI / 4; }
+      railTrack.lateralOffset = 0.0;
+      triggerFork('CENTER');
+      const p = SCENE.entities['player_f14'];
+      if (p) {
+        p.x = 0; p.y = 40; p.z = 80;
+        p.heading = Math.PI / 4;
+        p.bank = 0;
+      }
       selectNode(SCENE.selectedNode);
     }
 
@@ -471,13 +794,13 @@
       if (SCENE.cameraProj === 'TOP_DOWN') {
         return { x: W / 2 + relX * 1.5, y: H / 2 - relY * 0.9 };
       } else if (SCENE.cameraProj === 'SIDE_SCROLL_RELATIVE') {
-        const p = SCENE.entities['player-f14'];
+        const p = SCENE.entities['player_f14'];
         const ang = p ? p.heading : Math.PI / 4;
         const forward = relX * Math.cos(ang) + relY * Math.sin(ang);
         const lateral = -relX * Math.sin(ang) + relY * Math.cos(ang);
         return { x: W / 2 + forward * 1.4, y: H / 2 - z * 1.6 + lateral * 0.4 };
       } else {
-        // Standard ISOMETRIC_25D
+        // Standard ISOMETRIC_25D (Dimetric 2:1 axonometric standard)
         return {
           x: W / 2 + (relX - relY) * 1.5,
           y: H / 2 + (relX + relY) * 0.75 - z * 1.2
@@ -489,32 +812,82 @@
     function renderStudio() {
       input.update();
 
-      const player = SCENE.entities['player-f14'];
+      const player = SCENE.entities['player_f14'];
 
-      if (SCENE.simulationRunning) {
+      if (SCENE.simulationRunning && player) {
         SCENE.time += 0.04;
-        SCENE.cameraY = (SCENE.cameraY + SCENE.speed) % SCENE.totalLength;
 
-        // Player Controls via InputManager
-        const m = input.getMovementVector();
-        player.x += m.x * player.speed;
-        player.y += (m.y * player.speed) + SCENE.speed;
-        if (Math.abs(m.x) > 0.1 || Math.abs(m.y) > 0.1) {
-          player.heading = Math.atan2(m.y, m.x);
+        // Keyboard & Gamepad Fork branching triggers (A/D or Q/E)
+        if (input.isDown('KeyA') || input.isDown('KeyQ') || input.isAction('NAV_LEFT')) {
+          triggerFork('LEFT');
+        } else if (input.isDown('KeyD') || input.isDown('KeyE') || input.isAction('NAV_RIGHT')) {
+          triggerFork('RIGHT');
+        } else if (input.isDown('KeyW') || input.isDown('KeyS') || input.isAction('NAV_UP')) {
+          triggerFork('CENTER');
         }
 
-        // Camera smoothly follows player
+        // Smooth transition to target branch lateral offset
+        railTrack.lateralOffset += (railTrack.targetLateralOffset - railTrack.lateralOffset) * 0.06;
+
+        if (SCENE.flightMode === 'RAIL_TANGENT') {
+          // Advance progress along the rail
+          SCENE.progress = (SCENE.progress + SCENE.speed) % SCENE.totalLength;
+          SCENE.cameraY = SCENE.progress;
+
+          // 1. Ray Pozisyonu
+          const pt = railTrack.getPointAt(SCENE.progress, railTrack.lateralOffset);
+          player.x = pt.x;
+          player.y = pt.y;
+          player.z = pt.z;
+
+          // 2. RAY TEĞET VEKTÖRÜ VE BURUN KİLİDİ (TANGENT HEADING LOCK)
+          // const tangent = currentSpline.getTangentAt(progress);
+          // const targetHeading = Math.atan2(tangent.y, tangent.x);
+          const tangent = railTrack.getTangentAt(SCENE.progress, railTrack.lateralOffset);
+          const targetHeading = Math.atan2(tangent.y, tangent.x);
+
+          // Smooth lerpAngle to lock nose perfectly along tangent without sudden flips
+          player.heading = lerpAngle(player.heading, targetHeading, 0.12);
+
+          // 3. Çatallanma / Manevra Bank Açısı (Roll: ±35° bank angle)
+          const targetBank = (railTrack.targetLateralOffset < railTrack.lateralOffset - 5) 
+            ? -(35.0 * Math.PI / 180) 
+            : (railTrack.targetLateralOffset > railTrack.lateralOffset + 5)
+              ? (35.0 * Math.PI / 180)
+              : 0.0;
+          player.bank = lerpAngle(player.bank, targetBank, 0.08);
+
+        } else {
+          // Free Flight Mode
+          const m = input.getMovementVector();
+          player.x += m.x * player.speed;
+          player.y += (m.y * player.speed) + SCENE.speed;
+          if (Math.abs(m.x) > 0.1 || Math.abs(m.y) > 0.1) {
+            const targetHeading = Math.atan2(m.y, m.x);
+            player.heading = lerpAngle(player.heading, targetHeading, 0.15);
+            player.bank = lerpAngle(player.bank, -m.x * (35.0 * Math.PI / 180), 0.1);
+          } else {
+            player.bank = lerpAngle(player.bank, 0.0, 0.08);
+          }
+          SCENE.cameraY = player.y;
+        }
+
+        // Camera smoothly tracks player laterally
         SCENE.cameraX += (player.x - SCENE.cameraX) * 0.08;
       }
 
       // Update Timeline Scrubber
-      const tRatio = (SCENE.cameraY / SCENE.totalLength) * 100;
+      const tRatio = ((SCENE.cameraY % SCENE.totalLength) / SCENE.totalLength) * 100;
       document.getElementById('timeline-needle').style.left = `${tRatio.toFixed(1)}%`;
 
       // Update Viewport HUD Telemetry
-      document.getElementById('vp-coords').innerText = `X: ${player.x.toFixed(1)} Y: ${player.y.toFixed(1)} Z: ${player.z.toFixed(1)}`;
+      if (player) {
+        document.getElementById('vp-coords').innerText = `X: ${player.x.toFixed(1)} Y: ${player.y.toFixed(1)} Z: ${player.z.toFixed(1)}`;
+        document.getElementById('vp-heading').innerText = `Yaw: ${(player.heading * 180 / Math.PI).toFixed(1)}° (Teğet)`;
+        document.getElementById('vp-bank').innerText = `Bank: ${(player.bank * 180 / Math.PI).toFixed(1)}°`;
+      }
 
-      // 1. Clear Screen
+      // 1. Clear Viewport
       ctx.fillStyle = '#050c18';
       ctx.fillRect(0, 0, W, H);
 
@@ -523,7 +896,7 @@
 
       // 2. Grid Plane (If enabled)
       if (SCENE.gridEnabled) {
-        ctx.strokeStyle = 'rgba(0, 243, 255, 0.12)';
+        ctx.strokeStyle = 'rgba(0, 243, 255, 0.1)';
         ctx.lineWidth = 1;
         const gSize = 80;
         const startY = Math.floor(cy / gSize) * gSize - gSize * 4;
@@ -538,65 +911,127 @@
         }
       }
 
-      // 3. Render Entities (Player & Environment)
-      // Suspension Bridge Deck
-      const b0 = project(-30, 1400, 60, cx, cy);
-      const b1 = project(30, 1400, 60, cx, cy);
-      const b2 = project(30, 2600, 60, cx, cy);
-      const b3 = project(-30, 2600, 60, cx, cy);
-      ctx.fillStyle = '#1e293b';
-      ctx.strokeStyle = '#475569';
-      ctx.beginPath();
-      ctx.moveTo(b0.x, b0.y); ctx.lineTo(b1.x, b1.y); ctx.lineTo(b2.x, b2.y); ctx.lineTo(b3.x, b3.y);
-      ctx.closePath();
-      ctx.fill(); ctx.stroke();
+      // 3. Draw Rail & Spline Tracks (Main, Left Fork, Right Fork)
+      const stepY = 30;
+      const railStartDist = cy - 200;
+      const railEndDist = cy + 1200;
 
-      // Render Player (F-14)
-      const pPos = project(player.x, player.y, player.z, cx, cy);
-      ctx.save();
-      ctx.translate(pPos.x, pPos.y);
-      ctx.rotate(player.heading - Math.PI / 4);
+      // Draw active/inactive branches
+      ['CENTER', 'LEFT', 'RIGHT'].forEach(branch => {
+        const offset = (branch === 'LEFT') ? -120 : (branch === 'RIGHT') ? 120 : 0;
+        const isActive = (railTrack.targetBranch === branch);
+        ctx.strokeStyle = isActive ? 'rgba(0, 243, 255, 0.6)' : 'rgba(100, 116, 139, 0.25)';
+        ctx.lineWidth = isActive ? 2 : 1;
+        ctx.beginPath();
+        for (let d = railStartDist; d <= railEndDist; d += stepY) {
+          const pt = railTrack.getPointAt(d, offset);
+          const pProj = project(pt.x, pt.y, pt.z, cx, cy);
+          if (d === railStartDist) ctx.moveTo(pProj.x, pProj.y);
+          else ctx.lineTo(pProj.x, pProj.y);
+        }
+        ctx.stroke();
+      });
 
-      // Shadow
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
-      ctx.beginPath();
-      ctx.ellipse(0, player.z * 0.4, 28, 12, 0, 0, Math.PI * 2);
-      ctx.fill();
+      // 4. Render Environment Structure: env_bosphorus_bridge
+      const bridge = SCENE.entities['env_bosphorus_bridge'];
+      if (bridge) {
+        const deckElev = bridge.z || 64.0;
+        // North Pylon
+        const np0 = project(-180, 1500, 0, cx, cy);
+        const np1 = project(-180, 1500, deckElev + 100, cx, cy);
+        // South Pylon
+        const sp0 = project(180, 1500, 0, cx, cy);
+        const sp1 = project(180, 1500, deckElev + 100, cx, cy);
 
-      // Fuselage
-      ctx.fillStyle = player.color;
-      ctx.strokeStyle = '#00f3ff';
-      ctx.lineWidth = (SCENE.selectedNode === 'player-f14') ? 2 : 1;
-      ctx.beginPath();
-      ctx.moveTo(20, 0);
-      ctx.lineTo(-14, 10);
-      ctx.lineTo(-14, -10);
-      ctx.closePath();
-      ctx.fill(); ctx.stroke();
+        // Pylons drawing
+        ctx.strokeStyle = '#64748b';
+        ctx.lineWidth = 4;
+        ctx.beginPath(); ctx.moveTo(np0.x, np0.y); ctx.lineTo(np1.x, np1.y); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(sp0.x, sp0.y); ctx.lineTo(sp1.x, sp1.y); ctx.stroke();
 
-      // Afterburner Glow
-      ctx.fillStyle = '#ff7700';
-      ctx.shadowColor = '#ff7700';
-      ctx.shadowBlur = player.bloom;
-      ctx.beginPath();
-      ctx.arc(-16, -4, 4, 0, Math.PI * 2);
-      ctx.arc(-16, 4, 4, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.shadowBlur = 0;
-      ctx.restore();
+        // Road Deck
+        const b0 = project(-220, 1485, deckElev, cx, cy);
+        const b1 = project(220, 1485, deckElev, cx, cy);
+        const b2 = project(220, 1515, deckElev, cx, cy);
+        const b3 = project(-220, 1515, deckElev, cx, cy);
+        ctx.fillStyle = bridge.color || '#334155';
+        ctx.strokeStyle = '#f59e0b';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(b0.x, b0.y); ctx.lineTo(b1.x, b1.y); ctx.lineTo(b2.x, b2.y); ctx.lineTo(b3.x, b3.y);
+        ctx.closePath();
+        ctx.fill(); ctx.stroke();
 
-      // 4. Render Active Gizmo on Selected Entity
-      if (SCENE.selectedNode === 'player-f14') {
+        // Flak Battery Defense Sockets
+        if (bridge.defense_sockets) {
+          for (const [sKey, sVal] of Object.entries(bridge.defense_sockets)) {
+            const spPos = project(sVal.x, 1500, sVal.y || deckElev, cx, cy);
+            ctx.fillStyle = '#ef4444';
+            ctx.beginPath(); ctx.arc(spPos.x, spPos.y, 3, 0, Math.PI * 2); ctx.fill();
+          }
+        }
+      }
+
+      // 5. Render Player Entity (player_f14) with Bank Roll and Tangent Heading
+      if (player) {
+        const pPos = project(player.x, player.y, player.z, cx, cy);
         ctx.save();
         ctx.translate(pPos.x, pPos.y);
-        ctx.lineWidth = 2;
-        // X Axis Gizmo (Red)
-        ctx.strokeStyle = '#f43f5e';
-        ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(35, 0); ctx.stroke();
-        // Y Axis Gizmo (Green)
-        ctx.strokeStyle = '#10b981';
-        ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, -35); ctx.stroke();
+
+        // Tangent Yaw + 2.5D coordinate compensation
+        ctx.rotate(player.heading - Math.PI / 4);
+
+        // Projected Ground Shadow
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
+        ctx.beginPath();
+        ctx.ellipse(0, player.z * 0.4, 26, 12, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Bank roll visual deflection (Wing tilt)
+        const bankDeflect = Math.sin(player.bank) * 12;
+
+        // Fuselage Body
+        ctx.fillStyle = player.color || '#cbd5e1';
+        ctx.strokeStyle = '#00f3ff';
+        ctx.lineWidth = (SCENE.selectedNode === 'player_f14') ? 2 : 1;
+        ctx.beginPath();
+        ctx.moveTo(22, 0); // Nose
+        ctx.lineTo(-14, 12 + bankDeflect); // Left wing
+        ctx.lineTo(-8, 0);  // Tail center
+        ctx.lineTo(-14, -12 + bankDeflect); // Right wing
+        ctx.closePath();
+        ctx.fill(); ctx.stroke();
+
+        // Twin Afterburners
+        ctx.fillStyle = '#00f3ff';
+        ctx.shadowColor = '#00f3ff';
+        ctx.shadowBlur = player.bloom || 14;
+        ctx.beginPath();
+        ctx.arc(-14, -4 + bankDeflect * 0.3, 3, 0, Math.PI * 2);
+        ctx.arc(-14, 4 + bankDeflect * 0.3, 3, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+
+        // Nose Heading & Tangent Vector Indicator
+        ctx.strokeStyle = 'rgba(0, 243, 255, 0.7)';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.moveTo(22, 0); ctx.lineTo(38, 0); ctx.stroke();
+
         ctx.restore();
+
+        // 6. Selected Entity Gizmo
+        if (SCENE.selectedNode === 'player_f14') {
+          ctx.save();
+          ctx.translate(pPos.x, pPos.y);
+          ctx.lineWidth = 2;
+          // Local/World X (Red)
+          ctx.strokeStyle = '#f43f5e';
+          ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(35, 0); ctx.stroke();
+          // Local/World Y (Green)
+          ctx.strokeStyle = '#10b981';
+          ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, -35); ctx.stroke();
+          ctx.restore();
+        }
       }
 
       requestAnimationFrame(renderStudio);
@@ -604,13 +1039,16 @@
 
     // --- Export Specs Action ---
     function exportMacroSpec() {
-      const e = SCENE.entities['player-f14'];
+      const e = SCENE.entities['player_f14'];
       const macroExport = `# EXPORTED STAGE MACRO (from DCC Studio IDE)\n\n` +
         `player_entity:\n` +
+        `  id: ${e.id}\n` +
+        `  card_spec: specs/entities/player_f14.json\n` +
         `  position: [${e.x.toFixed(1)}, ${e.y.toFixed(1)}, ${e.z.toFixed(1)}]\n` +
         `  heading_deg: ${(e.heading * 180 / Math.PI).toFixed(1)}\n` +
-        `  speed: ${e.speed}\n` +
-        `  health: ${e.health}\n` +
+        `  bank_deg: ${(e.bank * 180 / Math.PI).toFixed(1)}\n` +
+        `  flight_mode: ${SCENE.flightMode}\n` +
+        `  active_fork: ${railTrack.targetBranch}\n` +
         `camera:\n` +
         `  mode: ${SCENE.cameraProj}\n` +
         `  speed: ${SCENE.speed}\n`;
@@ -622,7 +1060,8 @@
       a.click();
     }
 
-    // Start
+    // Initialize Data-Driven System
+    loadEntityCards();
     requestAnimationFrame(renderStudio);
   </script>
 </body>

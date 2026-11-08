@@ -1,0 +1,86 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "id": "env_bosphorus_bridge",
+  "name": "Bosphorus Suspension Bridge",
+  "type": "environment_structure",
+  "version": "1.0.0",
+  "geometry_25d": {
+    "total_length_m": 1560,
+    "pylon_height_m": 165,
+    "pylon_span_distance_m": 1074,
+    "deck_elevation_m": 64.0,
+    "deck_width_m": 33.4,
+    "deck_lane_count": 6,
+    "cable_sag_depth_m": 90.0,
+    "color_palette": {
+      "pylons": "#8b949e",
+      "deck": "#30363d",
+      "cables": "#f59e0b",
+      "warning_lights": "#ef4444"
+    }
+  },
+  "defense_sockets": {
+    "flak_battery_tower_north": {
+      "x": -25.0,
+      "y": 64.0,
+      "z": -200.0,
+      "type": "aa_flak_88mm",
+      "range_m": 4200,
+      "rotation_limits_deg": [-15, 85]
+    },
+    "flak_battery_tower_south": {
+      "x": 25.0,
+      "y": 64.0,
+      "z": 200.0,
+      "type": "aa_flak_88mm",
+      "range_m": 4200,
+      "rotation_limits_deg": [-15, 85]
+    },
+    "sam_launcher_pylon_apex_L": {
+      "x": -16.0,
+      "y": 165.0,
+      "z": -50.0,
+      "type": "sam_battery_quad",
+      "range_m": 8500
+    },
+    "sam_launcher_pylon_apex_R": {
+      "x": 16.0,
+      "y": 165.0,
+      "z": 50.0,
+      "type": "sam_battery_quad",
+      "range_m": 8500
+    }
+  },
+  "destructible_segments": [
+    {
+      "segment_id": "central_deck_span",
+      "hitpoints": 5000,
+      "collapse_triggers_blocking_hazard": true
+    },
+    {
+      "segment_id": "suspension_cable_main",
+      "hitpoints": 2500,
+      "collapse_triggers_blocking_hazard": false
+    }
+  ],
+  "collision": {
+    "collider_type": "composite_aabb",
+    "boxes": [
+      {
+        "name": "pylon_north",
+        "min": [-30, 0, -220],
+        "max": [-20, 165, -180]
+      },
+      {
+        "name": "pylon_south",
+        "min": [20, 0, 180],
+        "max": [30, 165, 220]
+      },
+      {
+        "name": "road_deck",
+        "min": [-30, 60, -500],
+        "max": [30, 68, 500]
+      }
+    ]
+  }
+}

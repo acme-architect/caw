@@ -1,0 +1,86 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "id": "player_f14",
+  "name": "F-14 Tomcat (Player)",
+  "type": "aircraft_player",
+  "version": "1.0.0",
+  "model": {
+    "mesh_path": "assets/f14_mesh.obj",
+    "texture_path": "assets/f14_texture.png",
+    "spritesheet_path": ".tmp/f14_sheet.png",
+    "scale": [1.0, 1.0, 1.0],
+    "bounding_box": {
+      "min": [-3.5, -0.8, -4.8],
+      "max": [3.5, 0.8, 4.8]
+    }
+  },
+  "flight_limits": {
+    "max_speed_knots": 1350,
+    "cruise_speed_knots": 650,
+    "stall_speed_knots": 140,
+    "climb_rate_fps": 450,
+    "max_altitude_m": 15000,
+    "min_altitude_m": 0,
+    "bank_angle_limit_deg": 35.0,
+    "yaw_rate_deg_sec": 42.0,
+    "max_shield": 100,
+    "max_fuel_liters": 9000,
+    "afterburner_multiplier": 1.75
+  },
+  "sockets": {
+    "engine_L": {
+      "x": -1.2,
+      "y": -0.2,
+      "z": -3.8,
+      "purpose": "afterburner_exhaust",
+      "vfx": "fx_afterburner_cyan"
+    },
+    "engine_R": {
+      "x": 1.2,
+      "y": -0.2,
+      "z": -3.8,
+      "purpose": "afterburner_exhaust",
+      "vfx": "fx_afterburner_cyan"
+    },
+    "gun_muzzle": {
+      "x": -0.5,
+      "y": -0.1,
+      "z": 3.2,
+      "purpose": "m61_vulcan_20mm",
+      "rate_of_fire_rpm": 6000
+    },
+    "wingtip_L": {
+      "x": -4.2,
+      "y": 0.05,
+      "z": -0.5,
+      "purpose": "aim9_sidewinder_station",
+      "vfx": "fx_vortices"
+    },
+    "wingtip_R": {
+      "x": 4.2,
+      "y": 0.05,
+      "z": -0.5,
+      "purpose": "aim9_sidewinder_station",
+      "vfx": "fx_vortices"
+    },
+    "belly_sparrow_01": {
+      "x": 0.0,
+      "y": -0.4,
+      "z": 0.5,
+      "purpose": "aim54_phoenix_pylon"
+    }
+  },
+  "capabilities": {
+    "carrier_landing": true,
+    "variable_geometry_wings": true,
+    "radar_range_km": 160,
+    "can_submerge": false,
+    "can_high_altitude": true
+  },
+  "collision": {
+    "collider_type": "capsule",
+    "radius": 1.8,
+    "height": 7.2,
+    "damage_absorption": 0.85
+  }
+}
