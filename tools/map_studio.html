@@ -322,14 +322,14 @@
           ZONE BOUNDARY: REVERSING
         </div>
 
-        <!-- 1. TUŞ GÖRSELLEŞTİRİCİSİ (INPUT VISUALIZER OVERLAY - SAĞ ALT KÖŞE) -->
-        <div class="absolute bottom-5 right-5 bg-[#070d1a]/85 border border-cyan-900/60 rounded-lg p-2.5 backdrop-blur shadow-2xl flex flex-col gap-2 pointer-events-none select-none z-20">
+        <!-- 1. TUŞ GÖRSELLEŞTİRİCİSİ (INPUT VISUALIZER OVERLAY - SAĞ ALT KÖŞE: HER ZAMAN AKTİF VE YALITILMIŞ) -->
+        <div class="absolute bottom-5 right-5 bg-[#070d1a]/85 border border-cyan-900/60 rounded-lg p-2.5 backdrop-blur shadow-2xl flex flex-col gap-2 pointer-events-none select-none z-30">
           <div class="flex items-center justify-between text-[10px] font-mono text-slate-400 border-b border-slate-800/80 pb-1">
             <span class="text-cyan-400 font-bold uppercase tracking-wider">Girdi Telemetrisi</span>
             <span id="hud-thrust-val" class="text-amber-400 font-mono font-bold">THROTTLE: 100%</span>
           </div>
 
-          <!-- W, A, S, D Key Grid -->
+          <!-- W, A, S, D Key Grid (Mapped via KEY_MAP) -->
           <div class="flex flex-col items-center gap-1">
             <!-- W Key -->
             <div id="key-w" class="keycap w-8 h-8 rounded bg-[#101726] border border-cyan-900/50 flex items-center justify-center text-xs font-mono font-bold text-slate-300">
@@ -347,13 +347,16 @@
                 D
               </div>
             </div>
-            <!-- Space / Shift Key -->
+            <!-- Space / Shift / M Key Row -->
             <div class="flex gap-1 w-full mt-0.5">
               <div id="key-shift" class="keycap flex-1 h-5 rounded bg-[#101726] border border-cyan-900/50 flex items-center justify-center text-[9px] font-mono font-bold text-slate-400">
-                SHIFT
+                SFT
               </div>
               <div id="key-space" class="keycap flex-1 h-5 rounded bg-[#101726] border border-cyan-900/50 flex items-center justify-center text-[9px] font-mono font-bold text-slate-400">
-                SPACE
+                SPC
+              </div>
+              <div id="key-m" class="keycap flex-1 h-5 rounded bg-[#101726] border border-cyan-900/50 flex items-center justify-center text-[9px] font-mono font-bold text-slate-400">
+                M
               </div>
             </div>
           </div>
@@ -368,6 +371,7 @@
               <div id="hud-thrust-bar" class="h-full bg-gradient-to-r from-cyan-400 to-amber-400 transition-all duration-75" style="width: 50%;"></div>
             </div>
           </div>
+        </div>
         </div>
 
       </div>
@@ -421,6 +425,7 @@
       time: 0,
       boundaryAlertTimer: 0,
       showTacticalMap: false,
+      mapAlpha: 0.0, // Smooth alpha fade for transparent overlay (0.0 to 1.0)
       // Fog of War Discovery Grid (100 cells along Y, 20 cells along X)
       fogGrid: new Uint8Array(100 * 20),
       // Layer Toggles
@@ -434,27 +439,27 @@
       }
     };
 
-    // Keyboard Input State
-    const KEYS = {
-      w: false, a: false, s: false, d: false,
-      shift: false, space: false
+    // --- Modular Key Mapping Configuration (KEY_MAP) ---
+    const KEY_MAP = {
+      FORWARD: { code: 'KeyW', altCode: 'ArrowUp', label: 'W', elemId: 'key-w', state: false },
+      BACK:    { code: 'KeyS', altCode: 'ArrowDown', label: 'S', elemId: 'key-s', state: false },
+      LEFT:    { code: 'KeyA', altCode: 'ArrowLeft', label: 'A', elemId: 'key-a', state: false },
+      RIGHT:   { code: 'KeyD', altCode: 'ArrowRight', label: 'D', elemId: 'key-d', state: false },
+      UP:      { code: 'Space', altCode: 'Space', label: 'SPC', elemId: 'key-space', state: false },
+      DOWN:    { code: 'ShiftLeft', altCode: 'ShiftRight', label: 'SFT', elemId: 'key-shift', state: false },
+      MAP:     { code: 'KeyM', altCode: 'KeyM', label: 'M', elemId: 'key-m', state: false }
     };
 
     function updateInputVisualizer() {
-      const toggle = (id, active) => {
-        const el = document.getElementById(id);
+      // Direct state update from KEY_MAP
+      for (const key in KEY_MAP) {
+        const item = KEY_MAP[key];
+        const el = document.getElementById(item.elemId);
         if (el) {
-          if (active) el.classList.add('active');
+          if (item.state) el.classList.add('active');
           else el.classList.remove('active');
         }
-      };
-
-      toggle('key-w', KEYS.w);
-      toggle('key-a', KEYS.a);
-      toggle('key-s', KEYS.s);
-      toggle('key-d', KEYS.d);
-      toggle('key-shift', KEYS.shift);
-      toggle('key-space', KEYS.space);
+      }
 
       // Speed & Thrust readout
       const speedMag = Math.sqrt(STATE.vx * STATE.vx + STATE.vy * STATE.vy);
@@ -472,30 +477,36 @@
     }
 
     window.addEventListener('keydown', (e) => {
-      const k = e.key.toLowerCase();
-      if (k === 'w' || k === 'arrowup') KEYS.w = true;
-      if (k === 's' || k === 'arrowdown') KEYS.s = true;
-      if (k === 'a' || k === 'arrowleft') KEYS.a = true;
-      if (k === 'd' || k === 'arrowright') KEYS.d = true;
-      if (e.shiftKey || k === 'shift') KEYS.shift = true;
-      if (k === ' ' || e.code === 'Space') {
-        KEYS.space = true;
+      // Sync KEY_MAP
+      for (const key in KEY_MAP) {
+        const item = KEY_MAP[key];
+        if (e.code === item.code || e.code === item.altCode) {
+          item.state = true;
+        }
+      }
+
+      if (e.code === 'KeyM') {
+        toggleTacticalMap();
+      }
+      if (e.code === 'KeyC') {
+        setCameraMode(STATE.cameraMode === 'rail' ? 'free' : 'rail');
+      }
+      if (e.code === 'Space' && e.ctrlKey) {
         togglePause();
       }
 
-      if (k === 'm') toggleTacticalMap();
-      if (k === 'c') setCameraMode(STATE.cameraMode === 'rail' ? 'free' : 'rail');
       updateInputVisualizer();
     });
 
     window.addEventListener('keyup', (e) => {
-      const k = e.key.toLowerCase();
-      if (k === 'w' || k === 'arrowup') KEYS.w = false;
-      if (k === 's' || k === 'arrowdown') KEYS.s = false;
-      if (k === 'a' || k === 'arrowleft') KEYS.a = false;
-      if (k === 'd' || k === 'arrowright') KEYS.d = false;
-      if (!e.shiftKey && k === 'shift') KEYS.shift = false;
-      if (k === ' ' || e.code === 'Space') KEYS.space = false;
+      // Sync KEY_MAP
+      for (const key in KEY_MAP) {
+        const item = KEY_MAP[key];
+        if (e.code === item.code || e.code === item.altCode) {
+          item.state = false;
+        }
+      }
+
       updateInputVisualizer();
     });
 
@@ -620,15 +631,15 @@
           STATE.cameraY = (STATE.cameraY + STATE.speed) % MAP_TOTAL_LENGTH;
           STATE.cameraX += (0 - STATE.cameraX) * 0.08; // Return cameraX to corridor center
 
-          // Hero moves relative to camera viewport
+          // Hero moves relative to camera viewport via KEY_MAP
           const moveSpeed = 4.2;
           let targetVx = 0;
           let targetVy = STATE.speed;
 
-          if (KEYS.a) targetVx -= moveSpeed;
-          if (KEYS.d) targetVx += moveSpeed;
-          if (KEYS.w) targetVy += moveSpeed;
-          if (KEYS.s) targetVy -= moveSpeed;
+          if (KEY_MAP.LEFT.state) targetVx -= moveSpeed;
+          if (KEY_MAP.RIGHT.state) targetVx += moveSpeed;
+          if (KEY_MAP.FORWARD.state) targetVy += moveSpeed;
+          if (KEY_MAP.BACK.state) targetVy -= moveSpeed;
 
           STATE.vx += (targetVx - STATE.vx) * 0.2;
           STATE.vy += (targetVy - STATE.vy) * 0.2;
@@ -648,16 +659,16 @@
           STATE.heroHeading = lerpAngle(STATE.heroHeading, STATE.targetHeading, 0.15);
 
         } else {
-          // FREE MODE: Heading follows velocity vector (atan2) with angular lerp 0.1
+          // FREE MODE: Heading follows velocity vector (atan2) with angular lerp 0.1 via KEY_MAP
           const accel = 0.35;
-          const maxSpd = KEYS.shift ? 7.0 : 4.8;
+          const maxSpd = KEY_MAP.DOWN.state ? 7.0 : 4.8; // Shift key boosts max speed
           let ax = 0;
           let ay = 0;
 
-          if (KEYS.a) ax -= 1;
-          if (KEYS.d) ax += 1;
-          if (KEYS.w) ay += 1;
-          if (KEYS.s) ay -= 1;
+          if (KEY_MAP.LEFT.state) ax -= 1;
+          if (KEY_MAP.RIGHT.state) ax += 1;
+          if (KEY_MAP.FORWARD.state) ay += 1;
+          if (KEY_MAP.BACK.state) ay -= 1;
 
           if (ax !== 0 || ay !== 0) {
             const mag = Math.sqrt(ax * ax + ay * ay);
@@ -814,9 +825,11 @@
       // 3. KAMERA GÖRÜŞ ALANI (VIEWPORT FRUSTUM BOX - DÜNYA SAHNESİ İZDÜŞÜMÜ)
       renderWorldViewportFrustum(ctx, cx, cy);
 
-      // --- KATMAN 6: 2.5D İZOMETRİK TAKTİK HARİTA & SAVAŞ SİSİ ---
-      if (STATE.showTacticalMap) {
-        renderIsometricTacticalMap(ctx, cx, cy);
+      // --- KATMAN 6: 2.5D ÇERÇEVESİZ ŞEFFAF İZOMETRİK HARİTA (SMOOTH ALPHA OVERLAY) ---
+      const targetAlpha = STATE.showTacticalMap ? 1.0 : 0.0;
+      STATE.mapAlpha += (targetAlpha - STATE.mapAlpha) * 0.18;
+      if (STATE.mapAlpha > 0.01) {
+        renderTransparentIsometricMap(ctx, cx, cy, STATE.mapAlpha);
       }
 
       // --- KATMAN 7: CAPCOM CPS-1 3+3 ENVANTER, TELSİZ VE STATUS HUD SİSTEMİ ---
@@ -1224,64 +1237,32 @@
       c.restore();
     }
 
-    // --- 2. İZOMETRİK TAKTİK HARİTA (ISOMETRIC RADAR PROJECTION) & FRUSTUM BOX ---
-    function renderIsometricTacticalMap(c, camX, camY) {
+    // --- 2. ÇERÇEVESİZ ŞEFFAF İZOMETRİK HARİTA (TRANSPARENT HUD OVERLAY) ---
+    function renderTransparentIsometricMap(c, camX, camY, alpha) {
       c.save();
-      const mapW = 540;
-      const mapH = 420;
-      const mapX = (W - mapW) / 2;
-      const mapY = (H - mapH) / 2;
+      c.globalAlpha = alpha;
 
-      // 1. Semi-transparent Backdrop (%90 Opak)
-      c.fillStyle = 'rgba(5, 11, 24, 0.92)';
-      c.strokeStyle = '#00f3ff';
-      c.lineWidth = 2;
-      c.shadowColor = '#00f3ff';
-      c.shadowBlur = 18;
-      c.fillRect(mapX, mapY, mapW, mapH);
-      c.strokeRect(mapX, mapY, mapW, mapH);
-      c.shadowBlur = 0;
+      const rCenterX = W / 2;
+      const rCenterY = H / 2;
+      const isoScaleX = 0.32;
+      const isoScaleY = 0.08;
 
-      // Header Bar
-      c.fillStyle = 'rgba(0, 243, 255, 0.15)';
-      c.fillRect(mapX, mapY, mapW, 26);
-      c.fillStyle = '#00f3ff';
-      c.font = 'bold 11px monospace';
-      c.fillText('2.5D ISOMETRIC RADAR & TACTICAL CORRIDOR [STAGE 01]', mapX + 12, mapY + 17);
-      c.fillStyle = '#94a3b8';
-      c.font = '10px monospace';
-      c.fillText('[M] Kapat', mapX + mapW - 65, mapY + 17);
-
-      const radarAreaX = mapX + 24;
-      const radarAreaY = mapY + 36;
-      const radarAreaW = mapW - 48;
-      const radarAreaH = mapH - 52;
-
-      // Radar Inner Boundary Clipping
-      c.save();
-      c.beginPath();
-      c.rect(radarAreaX, radarAreaY, radarAreaW, radarAreaH);
-      c.clip();
-
-      c.fillStyle = '#030814';
-      c.fillRect(radarAreaX, radarAreaY, radarAreaW, radarAreaH);
-
-      // --- İzometrik Baklava Dönüşüm Fonksiyonu ---
-      // Harita Alanı Merkezi
-      const rCenterX = radarAreaX + radarAreaW / 2;
-      const rCenterY = radarAreaY + radarAreaH / 2;
-      const isoScaleX = 0.22;
-      const isoScaleY = 0.055;
+      // Soft ambient radial vignette backdrop (Zero opaque borders or dialog frames)
+      const grad = c.createRadialGradient(rCenterX, rCenterY, 40, rCenterX, rCenterY, 380);
+      grad.addColorStop(0, 'rgba(3, 8, 20, 0.42)');
+      grad.addColorStop(0.7, 'rgba(2, 6, 16, 0.22)');
+      grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+      c.fillStyle = grad;
+      c.fillRect(0, 0, W, H);
 
       function toIsoRadar(wx, wy) {
-        // Relatif harita kaydırması: Haritayı uçağın genel bölgesinde dengeli tut
         const relY = wy - camY;
         const rx = rCenterX + (wx - relY) * isoScaleX;
         const ry = rCenterY + (wx + relY) * isoScaleY;
         return { x: rx, y: ry };
       }
 
-      // 1. İzometrik Baklava Izgara (Isometric Diamond Grid)
+      // 1. İzometrik Baklava Izgara (Isometric Diamond Grid - Transparan)
       c.lineWidth = 1;
       const stepY = 250;
       const stepX = 120;
@@ -1289,7 +1270,7 @@
       for (let y = 0; y <= MAP_TOTAL_LENGTH; y += stepY) {
         const pA = toIsoRadar(-MAP_LATERAL_HALF, y);
         const pB = toIsoRadar(MAP_LATERAL_HALF, y);
-        c.strokeStyle = (y % 1000 === 0) ? 'rgba(0, 243, 255, 0.35)' : 'rgba(15, 41, 66, 0.4)';
+        c.strokeStyle = (y % 1000 === 0) ? 'rgba(0, 243, 255, 0.45)' : 'rgba(15, 41, 66, 0.25)';
         c.beginPath();
         c.moveTo(pA.x, pA.y);
         c.lineTo(pB.x, pB.y);
@@ -1299,33 +1280,33 @@
       for (let x = -MAP_LATERAL_HALF; x <= MAP_LATERAL_HALF; x += stepX) {
         const pA = toIsoRadar(x, 0);
         const pB = toIsoRadar(x, MAP_TOTAL_LENGTH);
-        c.strokeStyle = (x === 0) ? 'rgba(0, 243, 255, 0.45)' : 'rgba(15, 41, 66, 0.4)';
+        c.strokeStyle = (x === 0) ? 'rgba(0, 243, 255, 0.5)' : 'rgba(15, 41, 66, 0.25)';
         c.beginPath();
         c.moveTo(pA.x, pA.y);
         c.lineTo(pB.x, pB.y);
         c.stroke();
       }
 
-      // 2. Savaş Sisi (Fog of War) İzometrik Doku
+      // 2. Savaş Sisi (Fog of War) Şeffaf Doku Noktaları
       for (let r = 0; r < 100; r++) {
         const wy = r * (MAP_TOTAL_LENGTH / 100);
-        if (Math.abs(wy - camY) > 2500) continue;
+        if (Math.abs(wy - camY) > 2800) continue;
 
         for (let col = 0; col < 20; col++) {
           if (STATE.fogGrid[r * 20 + col] === 0) {
             const wx = -MAP_LATERAL_HALF + col * ((MAP_LATERAL_HALF * 2) / 20);
             const p = toIsoRadar(wx, wy);
-            c.fillStyle = 'rgba(2, 6, 16, 0.75)';
-            c.fillRect(p.x - 4, p.y - 2, 8, 4);
+            c.fillStyle = 'rgba(1, 3, 8, 0.55)';
+            c.fillRect(p.x - 5, p.y - 2.5, 10, 5);
           }
         }
       }
 
-      // 3. Ana Görev Rotası (İzometrik Cyan Çizgi)
+      // 3. Ana Görev Rotası (İzometrik Neon Cyan Çizgi)
       c.strokeStyle = '#00f3ff';
       c.lineWidth = 2.5;
       c.shadowColor = '#00f3ff';
-      c.shadowBlur = 8;
+      c.shadowBlur = 12;
       c.beginPath();
       const rp0 = toIsoRadar(0, 0);
       const rp1 = toIsoRadar(0, MAP_TOTAL_LENGTH);
@@ -1336,8 +1317,8 @@
       // 4. Gizli Koridor (İzometrik Kesikli Sarı Çizgi)
       c.strokeStyle = '#f59e0b';
       c.shadowColor = '#f59e0b';
-      c.shadowBlur = 8;
-      c.setLineDash([5, 4]);
+      c.shadowBlur = 10;
+      c.setLineDash([6, 5]);
       c.beginPath();
       const rb0 = toIsoRadar(140, 1500);
       const rb1 = toIsoRadar(220, 2600);
@@ -1349,7 +1330,7 @@
       c.setLineDash([]);
       c.shadowBlur = 0;
 
-      // 3. KAMERA GÖRÜŞ ALANI (VIEWPORT FRUSTUM BOX - İZOMETRİK HARİTADA)
+      // 5. KAMERA GÖRÜŞ ALANI (VIEWPORT FRUSTUM BOX - İZOMETRİK HARİTADA)
       const fTL = toIsoRadar(-280 + camX, -160 + camY);
       const fTR = toIsoRadar(280 + camX, -160 + camY);
       const fBR = toIsoRadar(280 + camX, 220 + camY);
@@ -1357,8 +1338,8 @@
 
       c.strokeStyle = '#38bdf8';
       c.fillStyle = 'rgba(56, 189, 248, 0.08)';
-      c.lineWidth = 1.5;
-      c.setLineDash([4, 4]);
+      c.lineWidth = 1.8;
+      c.setLineDash([5, 4]);
       c.beginPath();
       c.moveTo(fTL.x, fTL.y);
       c.lineTo(fTR.x, fTR.y);
@@ -1369,37 +1350,33 @@
       c.stroke();
       c.setLineDash([]);
 
-      // 5. Anlık Uçak Konumu (Neon Üçgen İkon - İzometrik Açılı)
+      // 6. Anlık Uçak Konumu (Neon Zümrüt Üçgen İkon - İzometrik Açılı)
       const curHeroIso = toIsoRadar(STATE.heroX, STATE.heroY);
       c.save();
       c.translate(curHeroIso.x, curHeroIso.y);
-      c.rotate(STATE.heroHeading - Math.PI / 4); // Harita 2.5D eğimiyle hizala
+      c.rotate(STATE.heroHeading - Math.PI / 4);
       c.fillStyle = '#10b981';
       c.shadowColor = '#10b981';
-      c.shadowBlur = 12;
+      c.shadowBlur = 14;
       c.beginPath();
-      c.moveTo(9, 0);
-      c.lineTo(-6, -6);
+      c.moveTo(11, 0);
+      c.lineTo(-7, -7);
       c.lineTo(-3, 0);
-      c.lineTo(-6, 6);
+      c.lineTo(-7, 7);
       c.closePath();
       c.fill();
       c.restore();
 
-      c.restore(); // Clip bitişi
-
-      // Radar Çerçeve & Lejant
-      c.strokeStyle = '#00f3ff';
-      c.lineWidth = 1.5;
-      c.strokeRect(radarAreaX, radarAreaY, radarAreaW, radarAreaH);
-
-      c.font = '9px monospace';
-      c.fillStyle = '#00f3ff';
-      c.fillText('— ANA ROTA (CYAN)', radarAreaX + 10, radarAreaY + 16);
-      c.fillStyle = '#f59e0b';
-      c.fillText('- - GİZLİ KORİDOR (AMBER)', radarAreaX + 130, radarAreaY + 16);
-      c.fillStyle = '#38bdf8';
-      c.fillText('▢ KAMERA FRUSTUM', radarAreaX + 300, radarAreaY + 16);
+      // Transparent Overlay Subtle Watermark / Legend
+      c.font = '10px monospace';
+      c.fillStyle = 'rgba(0, 243, 255, 0.7)';
+      c.fillText('— ANA ROTA (CYAN)', 30, H - 35);
+      c.fillStyle = 'rgba(245, 158, 11, 0.7)';
+      c.fillText('- - GİZLİ KORİDOR (AMBER)', 170, H - 35);
+      c.fillStyle = 'rgba(56, 189, 248, 0.7)';
+      c.fillText('▢ KAMERA GÖRÜŞ ALANI (FRUSTUM)', 360, H - 35);
+      c.fillStyle = 'rgba(148, 163, 184, 0.6)';
+      c.fillText('[M: Haritayı Kapat/Aç]', W - 180, H - 35);
 
       c.restore();
     }
