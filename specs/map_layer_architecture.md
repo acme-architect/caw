@@ -87,3 +87,4 @@ Bölümler JSON tabanlı hücre ve segment haritası (`map.json`) olarak tanıml
   ]
 }
 ```
+

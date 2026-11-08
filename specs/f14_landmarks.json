@@ -1,0 +1,56 @@
+{
+  "sprite_name": "f14_iso_hero.png",
+  "image_dimensions": {
+    "width": 512,
+    "height": 256,
+    "channels": 4
+  },
+  "non_transparent_bounding_box": {
+    "min_x": 24,
+    "max_x": 487,
+    "min_y": 18,
+    "max_y": 237,
+    "width": 464,
+    "height": 220
+  },
+  "center_of_mass": {
+    "x": 223.48,
+    "y": 112.66
+  },
+  "nose_tip": {
+    "x": 487.0,
+    "y": 22.5
+  },
+  "exhaust_nozzles": {
+    "port_nozzle_upper": {
+      "x": 83.0,
+      "y": 141.0,
+      "description": "Port (Left nacelle / upper in isometric) engine exhaust nozzle origin"
+    },
+    "starboard_nozzle_lower": {
+      "x": 121.0,
+      "y": 182.5,
+      "description": "Starboard (Right nacelle / lower in isometric) engine exhaust nozzle origin"
+    },
+    "inter_nozzle_span_pixels": 56.27,
+    "exhaust_midpoint": {
+      "x": 102.0,
+      "y": 161.75
+    }
+  },
+  "thrust_kinematics": {
+    "thrust_emission_vector": {
+      "dx": -0.9455185755993168,
+      "dy": 0.3255681544571566,
+      "angle_degrees_screen": 161.0
+    },
+    "flight_heading_vector": {
+      "dx": 0.9455185755993168,
+      "dy": -0.3255681544571566,
+      "angle_degrees_screen": -19.0
+    },
+    "plume_pca_angle_degrees": -18.18,
+    "longitudinal_axis_angle_degrees": -19.88,
+    "calibrated_thrust_angle_degrees": 161.0
+  }
+}

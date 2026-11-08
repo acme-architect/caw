@@ -23,3 +23,4 @@
 3. **Sıfır Sızıntı Değişmezi (Zero-Leakage Invariant):**
    - Dağıtım (bundle/dist) aşamasında `tools/` veya `.upstream/` klasörleri oyun paketine dahil edilemez.
    - Herhangi bir aracın runtime kod tabanında `import` veya `require` edilmesi derleme hatası (build failure) üretir.
+
