@@ -280,6 +280,25 @@
     }
 
     /**
+     * Semantic alias for isActionDown
+     */
+    isAction(actionId) {
+      return !!this.actionStates[actionId];
+    }
+
+    /**
+     * Raw key down query API: isDown(code) / isKeyDown(code) -> Boolean
+     * E.g. isDown('KeyA'), isDown('KeyQ')
+     */
+    isDown(code) {
+      return !!this.rawKeyStates[code];
+    }
+
+    isKeyDown(code) {
+      return !!this.rawKeyStates[code];
+    }
+
+    /**
      * Query API: getMovementVector() -> { x, y } (-1.0 to 1.0 normalized)
      */
     getMovementVector() {
@@ -352,3 +371,4 @@
   InputManager.DEVICE_GLYPHS = DEVICE_GLYPHS;
   return InputManager;
 }));
+
