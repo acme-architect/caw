@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Carrier Air Wing - 2.5D Orthogonal Scroll & Depth Testbench</title>
+  <title>Carrier Air Wing - 2.5D Diagonal Projection Testbench</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -112,7 +112,7 @@
       color: #94a3b8;
     }
     .slider-group input[type="range"] {
-      width: 130px;
+      width: 120px;
       accent-color: #f59e0b;
       cursor: pointer;
     }
@@ -134,9 +134,9 @@
 
   <header>
     <div class="title">
-      Carrier Air Wing <span>| 2.5D Orthogonal Scroll & Rigid Depth Bench</span>
+      Carrier Air Wing <span>| 2.5D Diagonal World Space Projection (Viewpoint Style)</span>
     </div>
-    <div class="badge">Pure HTML5 Canvas 2D • Zero Dependencies • DoF = 0</div>
+    <div class="badge">Pure 3D-to-2D Axonometric Projection • Painter's Algorithm • DoF = 0</div>
   </header>
 
   <div class="viewport">
@@ -147,83 +147,128 @@
     <div class="btn-group">
       <!-- Shadow Toggle -->
       <button id="btn-shadow" class="active" onclick="toggleOption('shadow')">Gölge: AÇIK</button>
-      <!-- Foam / Foreground Haze Toggle -->
-      <button id="btn-foam" class="active" onclick="toggleOption('foam')">Ön Plan Köpük/Sis: AÇIK</button>
-      <!-- Angle Guide Toggle -->
-      <button id="btn-guide" onclick="toggleOption('guide')">Açı Rehberi (22.5°): KAPALI</button>
+      <!-- Grid Mesh Toggle -->
+      <button id="btn-grid" class="active" onclick="toggleOption('grid')">Z=0 Su Izgarası: AÇIK</button>
+      <!-- Axis Guide Toggle -->
+      <button id="btn-axes" onclick="toggleOption('axes')">3D Eksenler (X/Y/Z): KAPALI</button>
     </div>
 
     <!-- Scroll Speed Slider -->
     <div class="slider-group">
-      <span>Hız:</span>
+      <span>İleri Uçuş Hızı:</span>
       <input type="range" id="speed-slider" min="0" max="8" step="0.25" value="2.5" oninput="updateSpeed(this.value)">
       <span id="speed-val" class="val-display">2.5 px</span>
     </div>
 
     <div class="hud-meta">
-      FPS: <span id="fps-display" style="color:#10b981;">60</span> | Rigid Body: 1.0x Kilitli
+      FPS: <span id="fps-display" style="color:#10b981;">60</span> | Akış: <span style="color:#38bdf8;">Sağ-Üst → Sol-Alt</span>
     </div>
   </div>
 
   <script>
-    // --- Canvas & Simulation State ---
+    // --- Canvas & Core Configuration ---
     const canvas = document.getElementById('view');
     const ctx = canvas.getContext('2d');
+    const CANVAS_WIDTH = 960;
+    const CANVAS_HEIGHT = 540;
 
     const STATE = {
-      baseSpeed: 2.5,
+      speed: 2.5,
+      cameraX: 0,
       shadowEnabled: true,
-      foamEnabled: true,
-      guideEnabled: false,
-      // Layer Scroll Offsets
-      offsetWater: 0,     // L0: 0.75x
-      offsetRigid: 0,     // L1: 1.0x (Tüm Köprü Gövdesi + Yat)
-      offsetForeground: 0,// L2: 1.15x (Ön Plan Köpük / Sis)
+      gridEnabled: true,
+      axesEnabled: false,
       time: 0,
-      // Metrics
       fps: 60,
       frameCount: 0,
       lastFpsUpdate: performance.now()
     };
 
     function updateSpeed(v) {
-      STATE.baseSpeed = parseFloat(v);
-      document.getElementById('speed-val').innerText = `${STATE.baseSpeed.toFixed(1)} px`;
+      STATE.speed = parseFloat(v);
+      document.getElementById('speed-val').innerText = `${STATE.speed.toFixed(1)} px`;
     }
 
     function toggleOption(opt) {
       if (opt === 'shadow') {
         STATE.shadowEnabled = !STATE.shadowEnabled;
-        const btn = document.getElementById('btn-shadow');
-        btn.innerText = `Gölge: ${STATE.shadowEnabled ? 'AÇIK' : 'KAPALI'}`;
-        btn.className = STATE.shadowEnabled ? 'active' : '';
-      } else if (opt === 'foam') {
-        STATE.foamEnabled = !STATE.foamEnabled;
-        const btn = document.getElementById('btn-foam');
-        btn.innerText = `Ön Plan Köpük/Sis: ${STATE.foamEnabled ? 'AÇIK' : 'KAPALI'}`;
-        btn.className = STATE.foamEnabled ? 'active' : '';
-      } else if (opt === 'guide') {
-        STATE.guideEnabled = !STATE.guideEnabled;
-        const btn = document.getElementById('btn-guide');
-        btn.innerText = `Açı Rehberi (22.5°): ${STATE.guideEnabled ? 'AÇIK' : 'KAPALI'}`;
-        btn.className = STATE.guideEnabled ? 'active' : '';
+        const b = document.getElementById('btn-shadow');
+        b.innerText = `Gölge: ${STATE.shadowEnabled ? 'AÇIK' : 'KAPALI'}`;
+        b.className = STATE.shadowEnabled ? 'active' : '';
+      } else if (opt === 'grid') {
+        STATE.gridEnabled = !STATE.gridEnabled;
+        const b = document.getElementById('btn-grid');
+        b.innerText = `Z=0 Su Izgarası: ${STATE.gridEnabled ? 'AÇIK' : 'KAPALI'}`;
+        b.className = STATE.gridEnabled ? 'active' : '';
+      } else if (opt === 'axes') {
+        STATE.axesEnabled = !STATE.axesEnabled;
+        const b = document.getElementById('btn-axes');
+        b.innerText = `3D Eksenler (X/Y/Z): ${STATE.axesEnabled ? 'AÇIK' : 'KAPALI'}`;
+        b.className = STATE.axesEnabled ? 'active' : '';
       }
     }
 
-    // --- 2.5D Orthogonal Metrics & Parameters ---
-    // 22.5° Orthogonal Angle Metrics (Tan(22.5°) ~= 0.4142)
-    const ORTHO_TAN = Math.tan(22.5 * Math.PI / 180); // ~0.4142
-    const DECK_Y = 300; // Canvas %55 seviyesi (y = 300px)
-    const DECK_SURFACE_W = 28; // 2.5D üst yol genişliği
-    const DECK_FACADE_H = 12; // 2.5D dik ön cephe kalınlığı
-    const TOWER_MAX_H = 105; // Pilon yüksekliği (tabliyeden yukarı en fazla 105px)
-    const SEGMENT_W = 280;
-    const NUM_SEGMENTS = 5; // 5 * 280 = 1400px pool width (> 960px screen)
-    const TOTAL_SPAN = NUM_SEGMENTS * SEGMENT_W;
+    // --- 1. SAF 2.5D AKSONOMETRİK / DİYAGONAL İZDÜŞÜM MOTORU ---
+    // World Space: X: İleri (Flight Axis), Y: Yan (Lateral), Z: İrtifa/Yükseklik (Vertical)
+    // Screen Space: cameraX arttıkça dünya ekranda SAĞ-ÜSTTEN SOL-ALTA akar.
+    function project(x, y, z, cameraX) {
+      const relX = x - cameraX;
+      const screenX = CANVAS_WIDTH / 2 + (relX - y) * 1.5;
+      const screenY = CANVAS_HEIGHT / 2 + (relX + y) * 0.75 - z * 1.2;
+      return { x: screenX, y: screenY };
+    }
 
-    // --- Main Render Loop (requestAnimationFrame) ---
+    // --- 2. 3D DÜNYA VE NESNE TANIMLARI ---
+    // Tekrarlayan Köprü Segmentleri (X aralığı: 400 birim)
+    const BRIDGE_SPACING = 400;
+    const NUM_BRIDGES = 5;
+    const TOTAL_LOOP_SPAN = NUM_BRIDGES * BRIDGE_SPACING;
+
+    // Helper: Draw 3D polygon projected to 2D
+    function drawPoly3D(c, pts, fillColor, strokeColor = null, lineWidth = 1) {
+      if (!pts || pts.length < 3) return;
+      c.beginPath();
+      c.moveTo(pts[0].x, pts[0].y);
+      for (let i = 1; i < pts.length; i++) {
+        c.lineTo(pts[i].x, pts[i].y);
+      }
+      c.closePath();
+      if (fillColor) {
+        c.fillStyle = fillColor;
+        c.fill();
+      }
+      if (strokeColor) {
+        c.strokeStyle = strokeColor;
+        c.lineWidth = lineWidth;
+        c.stroke();
+      }
+    }
+
+    // Helper: Draw 3D Box / Pillar (Extruded along Z)
+    function drawPillar3D(c, x, y, zBottom, zTop, w, d, colFront, colSide, colTop, camX) {
+      // 8 Vertices of the 3D Box
+      const p0 = project(x, y, zBottom, camX);
+      const p1 = project(x + w, y, zBottom, camX);
+      const p2 = project(x + w, y + d, zBottom, camX);
+      const p3 = project(x, y + d, zBottom, camX);
+
+      const p4 = project(x, y, zTop, camX);
+      const p5 = project(x + w, y, zTop, camX);
+      const p6 = project(x + w, y + d, zTop, camX);
+      const p7 = project(x, y + d, zTop, camX);
+
+      // Front Face (Along X-Z plane facing bottom-left)
+      drawPoly3D(c, [p0, p1, p5, p4], colFront);
+      // Side Face (Along Y-Z plane facing bottom-right)
+      drawPoly3D(c, [p1, p2, p6, p5], colSide);
+      // Top Cap
+      if (colTop) {
+        drawPoly3D(c, [p4, p5, p6, p7], colTop);
+      }
+    }
+
+    // --- MAIN ANIMATION LOOP ---
     function render(timestamp) {
-      // FPS Calculation
       STATE.frameCount++;
       if (timestamp - STATE.lastFpsUpdate >= 500) {
         STATE.fps = Math.round((STATE.frameCount * 1000) / (timestamp - STATE.lastFpsUpdate));
@@ -232,413 +277,453 @@
         STATE.lastFpsUpdate = timestamp;
       }
       STATE.time += 0.04;
+      STATE.cameraX += STATE.speed; // İleri uçuş hareketi (+X yönü)
 
-      // Layer Speed Decompositions (STRICT INVARIANT: No speed tearing on bridge)
-      const vWater = STATE.baseSpeed * 0.75;  // L0: Su Yüzeyi (0.75x)
-      const vRigid = STATE.baseSpeed * 1.0;   // L1: Köprü + Yat Rigid Body (1.0x)
-      const vFore  = STATE.baseSpeed * 1.15;  // L2: Ön Plan Sis / Köpük (1.15x)
+      // 1. Ekranı Temizle (Okyanus Derin Mavisi)
+      ctx.fillStyle = '#061325';
+      ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
-      STATE.offsetWater = (STATE.offsetWater + vWater) % 960;
-      STATE.offsetRigid = (STATE.offsetRigid + vRigid) % TOTAL_SPAN;
-      STATE.offsetForeground = (STATE.offsetForeground + vFore) % 960;
+      // --- KATMAN 0: Z=0 DÜZLEMİ (SU VE DİYAGONAL IZGARA) ---
+      renderWaterPlane(ctx, STATE.cameraX, STATE.time);
 
-      // 1. Clear Screen
-      ctx.fillStyle = '#0a192f';
-      ctx.fillRect(0, 0, 960, 540);
+      // --- KATMAN 1: 3D DÜNYADAKİ NESNELER (Z-SORTING / PAINTER'S ALGORITHM) ---
+      render3DWorldScene(ctx, STATE.cameraX, STATE.time);
 
-      // --- KATMAN 0: Ritmik Dalga Şeritli Su Yüzeyi (0.75x Hız) ---
-      renderWaterSurface(ctx, STATE.offsetWater, STATE.time);
-
-      // --- KATMAN 1A: İzdüşüm Gölgeleri (1.0x Hız, 45° Açılı) ---
-      if (STATE.shadowEnabled) {
-        renderShadowLayer(ctx, STATE.offsetRigid, STATE.time);
+      // --- OPSİYONEL: 3D EKSEN GÖSTERGESİ ---
+      if (STATE.axesEnabled) {
+        render3DAxes(ctx, STATE.cameraX);
       }
 
-      // --- KATMAN 1B: Tüm Köprü Gövdesi (Rigid Body 1.0x Hız - Sıfır Yırtılma) ---
-      renderRigidBridgeBody(ctx, STATE.offsetRigid, STATE.time);
-
-      // --- KATMAN 1C: 2.5D Ortogonal Yat / Tekne (1.0x Hız, Açılı Gövde & Dümen İzi) ---
-      renderOrthogonalYacht(ctx, STATE.offsetRigid, STATE.time);
-
-      // --- KATMAN 2: Ön Plan Su Köpüğü ve Atmosferik Sis (1.15x Hız) ---
-      if (STATE.foamEnabled) {
-        renderForegroundLayer(ctx, STATE.offsetForeground, STATE.time);
-      }
-
-      // --- Açı Rehberi (22.5°) ---
-      if (STATE.guideEnabled) {
-        renderAngleGuides(ctx);
-      }
-
-      // In-Canvas HUD Metrics
+      // In-Canvas HUD
       renderInCanvasHUD(ctx);
 
       requestAnimationFrame(render);
     }
 
-    // --- Katman 0: Dinamik Ritmik Dalgalı Su Yüzeyi (0.75x Hız) ---
-    function renderWaterSurface(c, offset, t) {
-      // Water Depth Gradient
-      const grad = c.createLinearGradient(0, 0, 0, 540);
-      grad.addColorStop(0, '#0c2340');
-      grad.addColorStop(0.45, '#0f3254');
-      grad.addColorStop(1, '#081726');
+    // --- Su Yüzeyi & Aksonometrik Zemin Izgarası (Z = 0) ---
+    function renderWaterPlane(c, camX, t) {
+      // Background water gradient
+      const grad = c.createLinearGradient(0, 0, 0, CANVAS_HEIGHT);
+      grad.addColorStop(0, '#0a2342');
+      grad.addColorStop(0.5, '#0c3058');
+      grad.addColorStop(1, '#07182c');
       c.fillStyle = grad;
-      c.fillRect(0, 0, 960, 540);
+      c.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
-      // Rhythmic Horizontal Wave Bands (Alternating #1e3a5f and #2563eb tones)
+      if (!STATE.gridEnabled) return;
+
       c.save();
-      const waveRows = 24;
-      for (let r = 0; r < waveRows; r++) {
-        const y = 200 + r * 14;
-        const rowPhase = Math.sin(t * 1.2 + r * 0.35) * 6;
-        const speedFactor = 0.75 + (r / waveRows) * 0.1; // Deep water slightly slower
-        const rowOffset = (offset * (speedFactor / 0.75) + rowPhase) % 40;
+      c.lineWidth = 1;
 
-        c.strokeStyle = (r % 2 === 0) ? 'rgba(37, 99, 235, 0.18)' : 'rgba(30, 58, 95, 0.28)';
-        c.lineWidth = (r > 16) ? 2 : 1.2;
-        
+      // Aksonometrik Izgara Çizgileri (X ve Y eksenlerinde 60 birim aralıklarla)
+      const gridSize = 60;
+      const startX = Math.floor(camX / gridSize) * gridSize - gridSize * 4;
+      const endX = startX + gridSize * 18;
+
+      // 1. X-Doğrultulu Çizgiler (Uçuş ekseni boyunca)
+      for (let y = -400; y <= 400; y += gridSize) {
+        const pA = project(startX, y, 0, camX);
+        const pB = project(endX, y, 0, camX);
+        c.strokeStyle = (y === 0) ? 'rgba(56, 189, 248, 0.28)' : 'rgba(30, 58, 95, 0.22)';
         c.beginPath();
-        for (let x = -rowOffset - 40; x < 960 + 60; x += 36) {
-          // 22.5° slight diagonal wave chop
-          c.moveTo(x, y);
-          c.lineTo(x + 20, y + 20 * ORTHO_TAN * 0.4);
-        }
+        c.moveTo(pA.x, pA.y);
+        c.lineTo(pB.x, pB.y);
         c.stroke();
       }
+
+      // 2. Y-Doğrultulu Çizgiler (Yan eksen boyunca)
+      for (let x = startX; x <= endX; x += gridSize) {
+        const pA = project(x, -400, 0, camX);
+        const pB = project(x, 400, 0, camX);
+        c.strokeStyle = 'rgba(30, 58, 95, 0.22)';
+        c.beginPath();
+        c.moveTo(pA.x, pA.y);
+        c.lineTo(pB.x, pB.y);
+        c.stroke();
+      }
+
+      // Prosedürel Parlak Su Dalgaları (0.8x Bağıl Hız ile Süzülen Küçük Parıltılar)
+      c.strokeStyle = 'rgba(56, 189, 248, 0.18)';
+      c.lineWidth = 1.5;
+      const waveSpacing = 90;
+      const waveXStart = Math.floor((camX * 0.8) / waveSpacing) * waveSpacing - waveSpacing * 4;
+      
+      for (let wx = waveXStart; wx < waveXStart + waveSpacing * 14; wx += waveSpacing) {
+        for (let wy = -360; wy <= 360; wy += 80) {
+          const chopX = wx + Math.sin(t + wy * 0.05) * 8;
+          const p1 = project(chopX, wy, 0, camX);
+          const p2 = project(chopX + 22, wy + 8, 0, camX);
+          c.beginPath();
+          c.moveTo(p1.x, p1.y);
+          c.lineTo(p2.x, p2.y);
+          c.stroke();
+        }
+      }
+
       c.restore();
     }
 
-    // --- Katman 1A: 45° İzdüşüm Gölgeleri (Köprü Ayakları ve Yat) ---
-    function renderShadowLayer(c, offset, t) {
+    // --- 3D DÜNYA SAHNESİ: KÖPRÜLER, YAT VE GÖLGELER (Z-SORTING) ---
+    function render3DWorldScene(c, camX, t) {
+      // 1. Render Edilecek Tüm 3D Varlıkları Topla
+      const entities = [];
+
+      // A. Tekrarlayan Asma Köprüler
+      const startBridgeIdx = Math.floor(camX / BRIDGE_SPACING) - 2;
+      const endBridgeIdx = startBridgeIdx + NUM_BRIDGES + 2;
+
+      for (let idx = startBridgeIdx; idx <= endBridgeIdx; idx++) {
+        const bridgeWorldX = idx * BRIDGE_SPACING;
+        // Bounding check: Ekran sınırları içinde mi?
+        const testP = project(bridgeWorldX, 0, 60, camX);
+        if (testP.x < -400 || testP.x > CANVAS_WIDTH + 400 || testP.y < -300 || testP.y > CANVAS_HEIGHT + 300) {
+          continue;
+        }
+
+        entities.push({
+          type: 'bridge_shadow',
+          worldX: bridgeWorldX,
+          depth: bridgeWorldX // Depth metric: X_w + Y_w
+        });
+        entities.push({
+          type: 'bridge',
+          worldX: bridgeWorldX,
+          depth: bridgeWorldX + 20
+        });
+      }
+
+      // B. 3D Ortogonal Yat / Tekne (Z=0 Su Kanalında Çapraz İlerleyen Gemi)
+      // Yat kendi hızıyla ilerler veya köprünün yakınında demirlidir
+      const yachtWorldX = Math.floor(camX / BRIDGE_SPACING) * BRIDGE_SPACING + 180;
+      const yachtWorldY = Math.sin(t * 0.4) * 40 - 20; // Yan kanalda salınım
+      
+      entities.push({
+        type: 'yacht_shadow',
+        worldX: yachtWorldX,
+        worldY: yachtWorldY,
+        depth: yachtWorldX + yachtWorldY - 5
+      });
+      entities.push({
+        type: 'yacht',
+        worldX: yachtWorldX,
+        worldY: yachtWorldY,
+        depth: yachtWorldX + yachtWorldY
+      });
+
+      // 2. PAINTER'S ALGORITHM: Derinliğe (depth = X + Y) Göre Sırala (En Uzak İlk Çizilir)
+      entities.sort((a, b) => a.depth - b.depth);
+
+      // 3. Sıralanmış Varlıkları Çiz
+      for (const ent of entities) {
+        if (ent.type === 'bridge_shadow') {
+          if (STATE.shadowEnabled) render3DBridgeShadow(c, ent.worldX, camX);
+        } else if (ent.type === 'bridge') {
+          render3DBridge(c, ent.worldX, camX, t);
+        } else if (ent.type === 'yacht_shadow') {
+          if (STATE.shadowEnabled) render3DYachtShadow(c, ent.worldX, ent.worldY, camX, t);
+        } else if (ent.type === 'yacht') {
+          render3DYacht(c, ent.worldX, ent.worldY, camX, t);
+        }
+      }
+    }
+
+    // --- 3D KÖPRÜ GÖLGE İZDÜŞÜMÜ (Z=0 Düzlemine Düşen 45° Gölge) ---
+    function render3DBridgeShadow(c, bX, camX) {
       c.save();
-      c.fillStyle = 'rgba(0, 0, 0, 0.38)';
+      c.fillStyle = 'rgba(0, 0, 0, 0.35)';
 
-      for (let i = 0; i < NUM_SEGMENTS + 2; i++) {
-        let x = i * SEGMENT_W - (offset % TOTAL_SPAN);
-        if (x > 960 + SEGMENT_W) x -= TOTAL_SPAN;
+      // Köprü tabliyesinin Z=0 zeminine gölge izdüşümü (Z=60 yüksekliğinden Y eksenine 45° ofset)
+      const shadowYOffset = 35; // 45° ışık açısıyla Y'ye kayma
+      const wSpan = 18;
+      const yStart = -350 + shadowYOffset;
+      const yEnd = 350 + shadowYOffset;
 
-        // Bridge Pier Projected Shadows (Slanted downward-left at 45°)
-        const pierWaterY = 410;
-        const sx = x + 70;
-        const sLen = 42;
+      const p0 = project(bX, yStart, 0, camX);
+      const p1 = project(bX + wSpan, yStart, 0, camX);
+      const p2 = project(bX + wSpan, yEnd, 0, camX);
+      const p3 = project(bX, yEnd, 0, camX);
+      drawPoly3D(c, [p0, p1, p2, p3], 'rgba(0, 0, 0, 0.35)');
 
+      // Kulelerin Z=0'a düşen gölgeleri
+      for (const towerY of [-140, 140]) {
+        const tY = towerY + shadowYOffset;
+        const sp0 = project(bX - 6, tY - 8, 0, camX);
+        const sp1 = project(bX + 24, tY - 8, 0, camX);
+        const sp2 = project(bX + 24, tY + 45, 0, camX); // Uzayan gölge
+        const sp3 = project(bX - 6, tY + 45, 0, camX);
+        drawPoly3D(c, [sp0, sp1, sp2, sp3], 'rgba(0, 0, 0, 0.45)');
+      }
+
+      c.restore();
+    }
+
+    // --- 3D DİYAGONAL ASMA KÖPRÜ (TABLİYE Z=60, KULE Z=160, AYAKLAR Z=0-60) ---
+    function render3DBridge(c, bX, camX, t) {
+      c.save();
+
+      const DECK_Z = 60;   // Tabliye irtifası
+      const DECK_THICK = 10; // Tabliye kalınlığı
+      const DECK_W = 20;   // Yol genişliği (X ekseni boyunca)
+      const Y_START = -350;
+      const Y_END = 350;
+
+      // --- 1. AYAKLAR (PILLARS: Z=0'dan Z=60'a Su İçinde Yükselen Prizmalar) ---
+      for (const pillarY of [-140, 0, 140]) {
+        drawPillar3D(c, bX + 2, pillarY - 12, 0, DECK_Z - DECK_THICK, 16, 24, '#334155', '#1e293b', null, camX);
+
+        // Su temas tabanında köpük halkası
+        const baseCenter = project(bX + 10, pillarY, 0, camX);
+        c.fillStyle = 'rgba(255, 255, 255, 0.4)';
         c.beginPath();
-        c.moveTo(sx, pierWaterY);
-        c.lineTo(sx - sLen, pierWaterY + sLen * 0.7);
-        c.lineTo(sx - sLen + 32, pierWaterY + sLen * 0.7);
-        c.lineTo(sx + 32, pierWaterY);
-        c.closePath();
+        c.ellipse(baseCenter.x, baseCenter.y, 22, 6, -0.3, 0, Math.PI * 2);
         c.fill();
       }
 
-      // Yacht 45° Soft Shadow on Water
-      const yachtX = 660 - (offset % TOTAL_SPAN);
-      const yachtY = 420 + Math.sin(t) * 2;
+      // --- 2. KÖPRÜ TABLİYESİ (3D YOL DÜZLEMİ: Y boyunca uzanır, 2.5D Poligonlar) ---
+      // A. Yol Ön Cephesi (Düşey Kalınlık: Z=50'den Z=60'a)
+      const f0 = project(bX + DECK_W, Y_START, DECK_Z - DECK_THICK, camX);
+      const f1 = project(bX + DECK_W, Y_END, DECK_Z - DECK_THICK, camX);
+      const f2 = project(bX + DECK_W, Y_END, DECK_Z, camX);
+      const f3 = project(bX + DECK_W, Y_START, DECK_Z, camX);
+      drawPoly3D(c, [f0, f1, f2, f3], '#1f2937', '#0f172a'); // Koyu Beton Cephe
+
+      // B. Yol Üst Asfalt Yüzeyi (Z = 60 Düzlemi, X genişliği: DECK_W)
+      const t0 = project(bX, Y_START, DECK_Z, camX);
+      const t1 = project(bX + DECK_W, Y_START, DECK_Z, camX);
+      const t2 = project(bX + DECK_W, Y_END, DECK_Z, camX);
+      const t3 = project(bX, Y_END, DECK_Z, camX);
+      drawPoly3D(c, [t0, t1, t2, t3], '#374151', '#4b5563'); // Gri Asfalt
+
+      // Yol Korkuluğu / Bariyer Çıtası (Beyaz/Açık Gri)
+      const r0 = project(bX + DECK_W, Y_START, DECK_Z + 3, camX);
+      const r1 = project(bX + DECK_W, Y_END, DECK_Z + 3, camX);
+      c.strokeStyle = '#94a3b8';
+      c.lineWidth = 2;
       c.beginPath();
-      c.ellipse(yachtX - 18, yachtY + 18, 56, 14, -0.15, 0, Math.PI * 2);
-      c.fill();
+      c.moveTo(r0.x, r0.y);
+      c.lineTo(r1.x, r1.y);
+      c.stroke();
 
-      c.restore();
-    }
+      // Kesik Kesik Yol Şeritleri (Y ekseni boyunca)
+      c.strokeStyle = 'rgba(255, 255, 255, 0.45)';
+      c.lineWidth = 1.5;
+      c.setLineDash([8, 12]);
+      const s0 = project(bX + DECK_W / 2, Y_START, DECK_Z + 0.5, camX);
+      const s1 = project(bX + DECK_W / 2, Y_END, DECK_Z + 0.5, camX);
+      c.beginPath();
+      c.moveTo(s0.x, s0.y);
+      c.lineTo(s1.x, s1.y);
+      c.stroke();
+      c.setLineDash([]);
 
-    // --- Katman 1B: Tüm Köprü Gövdesi (Rigid Body 1.0x Hız - Sıfır Yırtılma) ---
-    function renderRigidBridgeBody(c, offset, t) {
-      c.save();
+      // --- 3. ASMA KÖPRÜ PİLONLARI (KULELER: Z=0'dan Z=155'e Yükselen İkiz Çelik Direkler) ---
+      const TOWER_PEAK_Z = 155;
+      for (const tY of [-140, 140]) {
+        // Sol Sütun (X=bX+2) & Sağ Sütun (X=bX+12)
+        drawPillar3D(c, bX + 2, tY - 6, 0, TOWER_PEAK_Z, 6, 12, '#cbd5e1', '#94a3b8', '#e2e8f0', camX);
+        drawPillar3D(c, bX + 12, tY - 6, 0, TOWER_PEAK_Z, 6, 12, '#cbd5e1', '#94a3b8', '#e2e8f0', camX);
 
-      for (let i = 0; i < NUM_SEGMENTS + 2; i++) {
-        let x = i * SEGMENT_W - (offset % TOTAL_SPAN);
-        if (x > 960 + SEGMENT_W) x -= TOTAL_SPAN;
+        // Kiriş Bağlantısı ("H" Strut)
+        const strutP0 = project(bX + 2, tY - 4, TOWER_PEAK_Z - 20, camX);
+        const strutP1 = project(bX + 18, tY - 4, TOWER_PEAK_Z - 20, camX);
+        const strutP2 = project(bX + 18, tY - 4, TOWER_PEAK_Z - 14, camX);
+        const strutP3 = project(bX + 2, tY - 4, TOWER_PEAK_Z - 14, camX);
+        drawPoly3D(c, [strutP0, strutP1, strutP2, strutP3], '#64748b');
 
-        const py = DECK_Y; // y = 300px
-
-        // --- 1. AYAKLAR (PILLARS) - Tabliyeden Suya İnene Kalın Prizmatik Kolonlar ---
-        const pierX = x + 70;
-        const pierTopY = py + DECK_FACADE_H;
-        const pierH = 100;
-        const pierW = 32;
-
-        // Front Face (Dark Concrete)
-        c.fillStyle = '#334155';
-        c.fillRect(pierX, pierTopY, pierW, pierH);
-        // Side Shading
-        c.fillStyle = '#1e293b';
-        c.fillRect(pierX + pierW - 8, pierTopY, 8, pierH);
-        // Base Foundation Flange
-        c.fillStyle = '#475569';
-        c.fillRect(pierX - 4, pierTopY + pierH - 12, pierW + 8, 12);
-
-        // Su Temas Çizgisinde Beyaz Su Köpüğü Halkası (Foam Ring)
-        c.fillStyle = 'rgba(255, 255, 255, 0.45)';
+        // Kule Tepesi İkaz Feneri (Kırmızı Yanıp Sönen LED)
+        const flash = Math.floor(t * 3) % 2 === 0;
+        const beaconP = project(bX + 10, tY, TOWER_PEAK_Z + 4, camX);
+        c.fillStyle = flash ? '#ef4444' : '#7f1d1d';
         c.beginPath();
-        c.ellipse(pierX + pierW / 2, pierTopY + pierH, (pierW + 12) / 2, 4.5, 0, 0, Math.PI * 2);
+        c.arc(beaconP.x, beaconP.y, 3, 0, Math.PI * 2);
         c.fill();
 
-        // --- 2. KÖPRÜ TABLİYESİ (DECK) ---
-        // 2A. 2.5D Üst Yüzey: 22.5° açılı hafif eğik paralelkenar (#374151 Asfalt)
-        c.fillStyle = '#374151';
+        // 3D Asma Çelik Kablolar (Tepeden Tabliyenin Y eksenine yayılan hatlar)
+        c.strokeStyle = 'rgba(203, 213, 225, 0.45)';
+        c.lineWidth = 1.2;
         c.beginPath();
-        c.moveTo(x, py);
-        c.lineTo(x + SEGMENT_W, py);
-        c.lineTo(x + SEGMENT_W + DECK_SURFACE_W * ORTHO_TAN * 2, py - DECK_SURFACE_W * 0.35);
-        c.lineTo(x + DECK_SURFACE_W * ORTHO_TAN * 2, py - DECK_SURFACE_W * 0.35);
-        c.closePath();
-        c.fill();
+        const topP = project(bX + 10, tY, TOWER_PEAK_Z, camX);
+        const anchorA = project(bX + 10, tY - 120, DECK_Z, camX);
+        const anchorB = project(bX + 10, tY + 120, DECK_Z, camX);
+        c.moveTo(anchorA.x, anchorA.y);
+        c.lineTo(topP.x, topP.y);
+        c.lineTo(anchorB.x, anchorB.y);
 
-        // Yol Şerit Çizgileri (Kesik Beyaz)
-        c.strokeStyle = 'rgba(255, 255, 255, 0.5)';
-        c.lineWidth = 1.5;
-        c.setLineDash([12, 10]);
-        c.beginPath();
-        c.moveTo(x, py - 5);
-        c.lineTo(x + SEGMENT_W, py - 5);
-        c.stroke();
-        c.setLineDash([]);
-
-        // 2B. Ön Yüzey (Kalınlık): 12px Dik İnen Cephe (#1f2937 Koyu Beton)
-        c.fillStyle = '#1f2937';
-        c.fillRect(x, py, SEGMENT_W, DECK_FACADE_H);
-
-        // Beyaz Bariyer / Korkuluk (Top Rim)
-        c.fillStyle = '#94a3b8';
-        c.fillRect(x, py - 3, SEGMENT_W, 3);
-        c.fillStyle = '#475569';
-        c.fillRect(x, py + DECK_FACADE_H - 2, SEGMENT_W, 2);
-
-        // --- 3. ASMA KÖPRÜ PİLONU (KULE) - Max 105px, Ekran Tavanına Değmez ---
-        // Her 2 segmentte bir kule yerleştir
-        if (i % 2 === 0) {
-          const towerW = 16;
-          const towerH = TOWER_MAX_H; // 105px
-          const towerTopY = py - towerH; // 300 - 105 = 195px (Ekran tavanına en az 195px mesafe var!)
-          const colX1 = x + 62;
-          const colX2 = x + 92;
-
-          // Çift Dikey Beton Direkler (Left & Right Tower Columns)
-          c.fillStyle = '#cbd5e1'; // Light Steel Concrete
-          c.fillRect(colX1, towerTopY, towerW, towerH);
-          c.fillRect(colX2, towerTopY, towerW, towerH);
-
-          // Sütun Yan Gölgeleri (Side Depth)
-          c.fillStyle = '#94a3b8';
-          c.fillRect(colX1 + towerW - 4, towerTopY, 4, towerH);
-          c.fillRect(colX2 + towerW - 4, towerTopY, 4, towerH);
-
-          // "H" ve "X" Şeklinde Çelik Kiriş Bağlantıları
-          c.fillStyle = '#64748b';
-          c.fillRect(colX1, towerTopY + 20, colX2 - colX1 + towerW, 6);
-          c.fillRect(colX1, towerTopY + 65, colX2 - colX1 + towerW, 6);
-
-          c.strokeStyle = '#475569';
-          c.lineWidth = 2;
-          c.beginPath();
-          c.moveTo(colX1 + towerW, towerTopY + 26);
-          c.lineTo(colX2, towerTopY + 65);
-          c.moveTo(colX2, towerTopY + 26);
-          c.lineTo(colX1 + towerW, towerTopY + 65);
-          c.stroke();
-
-          // Kule Tepesi İkaz Feneri (Yanıp Sönen Kırmızı)
-          const beaconFlash = Math.floor((STATE.time * 2.5) % 2) === 0;
-          c.fillStyle = beaconFlash ? '#ef4444' : '#7f1d1d';
-          c.beginPath();
-          c.arc(colX1 + towerW / 2, towerTopY - 3, 2.5, 0, Math.PI * 2);
-          c.arc(colX2 + towerW / 2, towerTopY - 3, 2.5, 0, Math.PI * 2);
-          c.fill();
-
-          // Çelik Asma Kabloları (Tepeden Tabliyeye Dengeli Simetrik Yayılım)
-          c.strokeStyle = 'rgba(203, 213, 225, 0.45)';
-          c.lineWidth = 1.2;
-          c.beginPath();
-          // Ana Taşıyıcı Halatlar
-          c.moveTo(colX1 + towerW / 2, towerTopY);
-          c.lineTo(x - 90, py);
-          c.moveTo(colX2 + towerW / 2, towerTopY);
-          c.lineTo(x + 240, py);
-
-          // İnce Dikey Askı Halatları
-          for (let k = 1; k <= 5; k++) {
-            const hx1 = colX1 - k * 18;
-            if (hx1 > x - 90) {
-              const hy1 = towerTopY + (k / 5) * (py - towerTopY);
-              c.moveTo(hx1, hy1);
-              c.lineTo(hx1, py);
-            }
-            const hx2 = colX2 + towerW + k * 18;
-            if (hx2 < x + 240) {
-              const hy2 = towerTopY + (k / 5) * (py - towerTopY);
-              c.moveTo(hx2, hy2);
-              c.lineTo(hx2, py);
-            }
+        // Dikey İnce Askı Halatları
+        for (let dy = -100; dy <= 100; dy += 25) {
+          if (dy !== 0) {
+            const ratio = 1 - Math.abs(dy) / 120;
+            const cableTopZ = DECK_Z + ratio * (TOWER_PEAK_Z - DECK_Z);
+            const pCableTop = project(bX + 10, tY + dy, cableTopZ, camX);
+            const pCableDeck = project(bX + 10, tY + dy, DECK_Z, camX);
+            c.moveTo(pCableTop.x, pCableTop.y);
+            c.lineTo(pCableDeck.x, pCableDeck.y);
           }
-          c.stroke();
         }
+        c.stroke();
       }
 
       c.restore();
     }
 
-    // --- Katman 1C: 2.5D Ortogonal Yat / Tekne (Açılı Gövde, Üst Güverte & Dümen İzi) ---
-    function renderOrthogonalYacht(c, offset, t) {
+    // --- 3D YAT GÖLGE İZDÜŞÜMÜ (Z=0 Düzlemi) ---
+    function render3DYachtShadow(c, yX, yY, camX, t) {
       c.save();
-      const yachtX = 660 - (offset % TOTAL_SPAN);
-      const bobbingY = 420 + Math.sin(t) * 2; // Y ekseninde +-2px salınım
-      const pitchRoll = Math.cos(t) * 0.02;
+      const sPos = project(yX, yY + 14, 0, camX);
+      c.fillStyle = 'rgba(0, 0, 0, 0.38)';
+      c.beginPath();
+      c.ellipse(sPos.x, sPos.y, 48, 12, -0.4, 0, Math.PI * 2);
+      c.fill();
+      c.restore();
+    }
 
-      c.translate(yachtX, bobbingY);
-      c.rotate(pitchRoll);
+    // --- 3D ORTOGONAL YAT / TEKNE (Z = 0 Su Kanalında Çapraz İlerleyen Gemi) ---
+    function render3DYacht(c, yX, yY, camX, t) {
+      c.save();
+      const zBob = Math.sin(t * 1.5) * 1.8; // Hafif su salınımı (Z ekseni)
 
-      // 1. Kıç Tarafında Geriye Doğru Açılan "V" Şeklinde Beyaz Su İzi (Wake Trail)
-      c.strokeStyle = 'rgba(255, 255, 255, 0.35)';
+      // 1. Pruva ve Kıç 3D Koordinatları (Uçuş/Kanal doğrultusunda hizalı)
+      // Pruva (Bow): yX - 35, yY
+      // Kıç (Stern): yX + 35, yY
+      const L = 36;
+      const W = 10;
+      const H = 8;
+
+      // 3D Hull Vertices (Su Üstü Gövdesi)
+      const bowP = project(yX - L, yY, zBob + H, camX);
+      const bowBaseP = project(yX - L + 4, yY, zBob, camX);
+      
+      const stbdTopP = project(yX, yY - W, zBob + H, camX);
+      const stbdBaseP = project(yX, yY - W + 2, zBob, camX);
+      
+      const portTopP = project(yX, yY + W, zBob + H, camX);
+      const portBaseP = project(yX, yY + W - 2, zBob, camX);
+
+      const sternPortP = project(yX + L, yY + W, zBob + H, camX);
+      const sternStbdP = project(yX + L, yY - W, zBob + H, camX);
+      const sternBaseP = project(yX + L - 4, yY, zBob, camX);
+
+      // Kıç Tarafında Suya Açılan "V" Şeklinde Köpük İzi (Wake)
+      const wakeA = project(yX + L + 12, yY - 14, 0, camX);
+      const wakeB = project(yX + L + 45, yY - 32, 0, camX);
+      const wakeC = project(yX + L + 12, yY + 14, 0, camX);
+      const wakeD = project(yX + L + 50, yY + 36, 0, camX);
+      c.strokeStyle = 'rgba(255, 255, 255, 0.4)';
       c.lineWidth = 1.8;
       c.beginPath();
-      // Kıç sağ tarafta (+X), burun sol tarafta (-X)
-      c.moveTo(42, 6);
-      c.lineTo(85, -4);
-      c.moveTo(42, 12);
-      c.lineTo(105, 24);
+      c.moveTo(wakeA.x, wakeA.y);
+      c.lineTo(wakeB.x, wakeB.y);
+      c.moveTo(wakeC.x, wakeC.y);
+      c.lineTo(wakeD.x, wakeD.y);
       c.stroke();
 
-      // Köpüklü Pervane Girdabı (Stern Foam)
-      c.fillStyle = 'rgba(255, 255, 255, 0.4)';
-      c.beginPath();
-      c.ellipse(50, 9, 8, 4, 0, 0, Math.PI * 2);
-      c.fill();
+      // A. Yan Borda Yüzeyi (Facing Camera - Beyaz / Gölgeli Cephe)
+      drawPoly3D(c, [bowBaseP, bowP, portTopP, sternPortP, sternBaseP, portBaseP], '#f8fafc', '#cbd5e1');
 
-      // 2. 2.5D Açılı Gövde Çizimi (Pruva Sola Bakıyor, Üst Güverte Görünüyor)
-      // 2A. Üst Güverte Yüzeyi (2.5D Top Deck Polygon - Parlak Gri/Beyaz)
-      c.fillStyle = '#e2e8f0';
-      c.beginPath();
-      c.moveTo(-45, 0); // Pruva Ucu (Bow Pointing Left)
-      c.lineTo(35, -7); // Üst İskele Kenarı
-      c.lineTo(44, 4);  // Kıç Kenarı (Transom)
-      c.lineTo(-32, 9); // Alt Sancak Kenarı
-      c.closePath();
-      c.fill();
-
-      // Lacivert Güverte Şeridi
+      // Lacivert Gövde Çizgisi
+      const stripe0 = project(yX - L + 8, yY + W - 1, zBob + 3, camX);
+      const stripe1 = project(yX + L - 6, yY + W - 1, zBob + 3, camX);
       c.strokeStyle = '#0284c7';
-      c.lineWidth = 2;
+      c.lineWidth = 2.5;
+      c.beginPath();
+      c.moveTo(stripe0.x, stripe0.y);
+      c.lineTo(stripe1.x, stripe1.y);
       c.stroke();
 
-      // 2B. Gövde Yan Yüzeyi (Hull Freeboard - Katı Beyaz Cephe)
-      c.fillStyle = '#f8fafc';
-      c.beginPath();
-      c.moveTo(-45, 0);
-      c.lineTo(-32, 9);
-      c.lineTo(44, 4);
-      c.lineTo(40, 16); // Kıç Su Çizgisi
-      c.lineTo(-30, 18);
-      c.lineTo(-45, 0);
-      c.closePath();
-      c.fill();
+      // B. Üst Güverte Yüzeyi (2.5D Top Deck Polygon)
+      drawPoly3D(c, [bowP, stbdTopP, sternStbdP, sternPortP, portTopP], '#e2e8f0', '#94a3b8');
 
-      // Gövde Su Hattı Alt Tonu (Dark Blue Marine Stripe)
-      c.fillStyle = '#0369a1';
-      c.beginPath();
-      c.moveTo(-30, 15);
-      c.lineTo(41, 13);
-      c.lineTo(40, 17);
-      c.lineTo(-30, 19);
-      c.closePath();
-      c.fill();
+      // C. Kabin / Kokpit (Superstructure)
+      const cL = 16;
+      const cW = 6;
+      const cH = 7;
+      drawPillar3D(c, yX - cL / 2, yY - cW / 2, zBob + H, zBob + H + cH, cL, cW, '#cbd5e1', '#94a3b8', '#f1f5f9', camX);
 
-      // 2C. 2.5D Üst Kabin & Kokpit (Cabin Superstructure)
-      c.fillStyle = '#cbd5e1';
-      c.beginPath();
-      c.moveTo(-18, -2);
-      c.lineTo(20, -6);
-      c.lineTo(24, 0);
-      c.lineTo(-12, 4);
-      c.closePath();
-      c.fill();
+      // Kokpit Karartılmış Cam
+      const winP0 = project(yX - cL / 2 - 0.5, yY - 2, zBob + H + 2, camX);
+      const winP1 = project(yX - cL / 2 - 0.5, yY + 2, zBob + H + 2, camX);
+      const winP2 = project(yX - cL / 2 - 0.5, yY + 2, zBob + H + 5, camX);
+      const winP3 = project(yX - cL / 2 - 0.5, yY - 2, zBob + H + 5, camX);
+      drawPoly3D(c, [winP0, winP1, winP2, winP3], '#0f172a');
 
-      // Kokpit Pencereleri (Tinted Blue/Black Glass)
-      c.fillStyle = '#0f172a';
-      c.beginPath();
-      c.moveTo(-14, -1);
-      c.lineTo(-6, -2);
-      c.lineTo(-4, 2);
-      c.lineTo(-12, 3);
-      c.closePath();
-      c.fill();
-
-      // Radar Anteni / Direk (Vertical Mast)
+      // Radar Anteni / Direk
+      const mastB = project(yX + 2, yY, zBob + H + cH, camX);
+      const mastT = project(yX + 2, yY, zBob + H + cH + 8, camX);
       c.strokeStyle = '#64748b';
       c.lineWidth = 1.5;
       c.beginPath();
-      c.moveTo(6, -6);
-      c.lineTo(6, -16);
-      c.moveTo(1, -13);
-      c.lineTo(11, -13);
+      c.moveTo(mastB.x, mastB.y);
+      c.lineTo(mastT.x, mastT.y);
       c.stroke();
 
       c.restore();
     }
 
-    // --- Katman 2: Ön Plan Su Köpüğü ve Atmosferik Sis (1.15x Hız) ---
-    function renderForegroundLayer(c, offset, t) {
+    // --- 3D DÜNYA EKSEN GÖSTERGESİ (X: Kırmızı, Y: Yeşil, Z: Mavi) ---
+    function render3DAxes(c, camX) {
       c.save();
-      // Foreground low altitude atmospheric ocean haze / foam
-      const grad = c.createLinearGradient(0, 500, 0, 540);
-      grad.addColorStop(0, 'rgba(56, 189, 248, 0)');
-      grad.addColorStop(1, 'rgba(56, 189, 248, 0.08)');
-      c.fillStyle = grad;
-      c.fillRect(0, 500, 960, 40);
+      const originX = camX + 100;
+      const originY = 0;
+      const originZ = 0;
+      const pO = project(originX, originY, originZ, camX);
+      const pX = project(originX + 80, originY, originZ, camX);
+      const pY = project(originX, originY + 80, originZ, camX);
+      const pZ = project(originX, originY, originZ + 80, camX);
 
-      // Fast drifting mist particles
-      c.fillStyle = 'rgba(255, 255, 255, 0.15)';
-      for (let p = 0; p < 8; p++) {
-        const px = ((p * 130 - offset * 1.15) % 1000 + 1000) % 1000 - 20;
-        const py = 480 + (p % 3) * 15 + Math.sin(t + p) * 3;
-        c.beginPath();
-        c.ellipse(px, py, 28, 4, 0, 0, Math.PI * 2);
-        c.fill();
-      }
-      c.restore();
-    }
+      c.lineWidth = 2.5;
 
-    // --- Opsiyonel: 22.5° Eksenel Açı Rehberi ---
-    function renderAngleGuides(c) {
-      c.save();
-      c.strokeStyle = 'rgba(245, 158, 11, 0.35)';
-      c.lineWidth = 1;
-      c.setLineDash([4, 6]);
+      // X: İleri Uçuş Ekseni (Kırmızı)
+      c.strokeStyle = '#ef4444';
+      c.beginPath();
+      c.moveTo(pO.x, pO.y);
+      c.lineTo(pX.x, pX.y);
+      c.stroke();
 
-      for (let y = -200; y < 540; y += 65) {
-        c.beginPath();
-        c.moveTo(0, y);
-        c.lineTo(960, y + 960 * ORTHO_TAN);
-        c.stroke();
-      }
+      // Y: Yan Eksen (Yeşil)
+      c.strokeStyle = '#10b981';
+      c.beginPath();
+      c.moveTo(pO.x, pO.y);
+      c.lineTo(pY.x, pY.y);
+      c.stroke();
 
-      c.fillStyle = 'rgba(245, 158, 11, 0.85)';
+      // Z: İrtifa Ekseni (Mavi)
+      c.strokeStyle = '#38bdf8';
+      c.beginPath();
+      c.moveTo(pO.x, pO.y);
+      c.lineTo(pZ.x, pZ.y);
+      c.stroke();
+
       c.font = '10px monospace';
-      c.fillText('ORTHOGONAL FLIGHT CORRIDOR: 22.5°', 16, 26);
+      c.fillStyle = '#ef4444';
+      c.fillText('+X (Flight/Forward)', pX.x + 4, pX.y);
+      c.fillStyle = '#10b981';
+      c.fillText('+Y (Lateral)', pY.x + 4, pY.y);
+      c.fillStyle = '#38bdf8';
+      c.fillText('+Z (Altitude)', pZ.x + 4, pZ.y);
+
       c.restore();
     }
 
     // --- In-Canvas HUD Metrics ---
     function renderInCanvasHUD(c) {
       c.save();
-      c.fillStyle = 'rgba(15, 23, 42, 0.8)';
-      c.fillRect(10, 10, 275, 78);
+      c.fillStyle = 'rgba(15, 23, 42, 0.85)';
+      c.fillRect(10, 10, 310, 85);
       c.strokeStyle = '#334155';
       c.lineWidth = 1;
-      c.strokeRect(10, 10, 275, 78);
+      c.strokeRect(10, 10, 310, 85);
 
       c.font = '10px monospace';
+      c.fillStyle = '#f59e0b';
+      c.fillText('2.5D DIAGONAL AXONOMETRIC ENGINE:', 18, 25);
+      
       c.fillStyle = '#94a3b8';
-      c.fillText('RIGID SPEED ARCHITECTURE:', 18, 25);
+      c.fillText(`- Projection: screenX = W/2 + (relX - Y)*1.5`, 18, 40);
+      c.fillText(`-             screenY = H/2 + (relX + Y)*0.75 - Z*1.2`, 18, 54);
       
       c.fillStyle = '#38bdf8';
-      c.fillText(`- L0 (Water Surface): ${(STATE.baseSpeed * 0.75).toFixed(2)} px/f (0.75x)`, 18, 40);
-      
-      c.fillStyle = '#10b981';
-      c.fillText(`- L1 (Bridge & Yacht): ${(STATE.baseSpeed * 1.0).toFixed(2)} px/f (1.0x Kilitli)`, 18, 54);
-      
-      c.fillStyle = STATE.foamEnabled ? '#f59e0b' : '#64748b';
-      c.fillText(`- L2 (Fore Haze/Foam): ${(STATE.baseSpeed * 1.15).toFixed(2)} px/f (1.15x)`, 18, 68);
+      c.fillText(`- Vector Flow: 30° Diagonal (Top-Right → Bottom-Left)`, 18, 68);
+      c.fillText(`- Camera X: ${STATE.cameraX.toFixed(1)} | Z-Sort: Active`, 18, 82);
       c.restore();
     }
 
