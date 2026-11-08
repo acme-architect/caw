@@ -9,6 +9,8 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- HUD Overlay Engine -->
   <script src="../src/hud_overlay.js"></script>
+  <!-- Input Manager Engine -->
+  <script src="../src/input/input_manager.js"></script>
   <style>
     * {
       box-sizing: border-box;
@@ -162,13 +164,25 @@
           <div class="grid grid-cols-2 gap-1.5">
             <button onclick="testRadioPilotWingman()"
               class="py-1.5 px-2 bg-gradient-to-r from-emerald-950 to-slate-900 border border-emerald-700 hover:border-emerald-400 text-emerald-300 text-[10px] font-bold rounded flex items-center justify-center gap-1 shadow">
-              <span>📻</span> Test Comms: Pilot/Wingman
+              <span>📻</span> Test Comms
             </button>
             <button onclick="testAchievementToast()"
               class="py-1.5 px-2 bg-gradient-to-r from-cyan-950 to-slate-900 border border-cyan-700 hover:border-cyan-400 text-cyan-300 text-[10px] font-bold rounded flex items-center justify-center gap-1 shadow">
-              <span>★</span> Hedef Tamamlandı
+              <span>★</span> Hedef Tamam
             </button>
           </div>
+        </div>
+
+        <!-- Keymap Options Button -->
+        <div class="pt-2 border-t border-slate-800/80">
+          <button onclick="openKeymapModal()"
+            class="w-full py-2 bg-gradient-to-r from-purple-950 to-slate-900 border border-purple-700 hover:border-purple-400 rounded flex items-center justify-between px-3 text-xs font-bold text-purple-300 shadow-[0_0_10px_rgba(168,85,247,0.2)] transition-all">
+            <span class="flex items-center gap-2">
+              <span>🎮</span>
+              Tuş Ayarları / Keymap Options
+            </span>
+            <span id="active-device-badge" class="text-[9px] bg-purple-900/60 border border-purple-700/60 px-1.5 py-0.5 rounded font-mono text-purple-200">KEYBOARD</span>
+          </button>
         </div>
 
         <!-- Layer Stack Manager -->
@@ -322,40 +336,82 @@
           ZONE BOUNDARY: REVERSING
         </div>
 
+        <!-- 3. KEYMAP OPTIONS / REMAPPING MODAL (NEON DIALOG) -->
+        <div id="keymap-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+          <div class="bg-[#0a0f1d] border border-cyan-800 rounded-xl max-w-lg w-full p-5 shadow-[0_0_30px_rgba(0,243,255,0.25)] flex flex-col gap-4 text-slate-100">
+            <div class="flex items-center justify-between border-b border-cyan-900/60 pb-3">
+              <div class="flex items-center gap-2">
+                <span class="text-lg">🎮</span>
+                <h3 class="text-sm font-black tracking-wider uppercase text-cyan-300">
+                  Tuş Ayarları & Donanım Eşleme (Keymap Options)
+                </h3>
+              </div>
+              <button onclick="closeKeymapModal()" class="text-slate-400 hover:text-rose-400 text-sm font-mono px-2 py-1 rounded bg-slate-900 border border-slate-800">
+                ✕ Kapat
+              </button>
+            </div>
+
+            <div class="text-[11px] text-slate-400 font-mono">
+              Atamak istediğiniz eylemin butonuna tıklayın, ardından klavyeden yeni bir tuşa basın. Değişiklikler otomatik kaydedilir.
+            </div>
+
+            <!-- Key Bindings Table -->
+            <div class="max-h-72 overflow-y-auto space-y-1.5 pr-1" id="keymap-list">
+              <!-- Dynamically populated rows -->
+            </div>
+
+            <!-- Footer Buttons -->
+            <div class="flex items-center justify-between pt-3 border-t border-cyan-900/60 text-xs">
+              <button onclick="resetKeymapDefaults()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-amber-400 font-semibold rounded border border-slate-700">
+                ↺ Varsayılana Sıfırla
+              </button>
+              <button onclick="closeKeymapModal()" class="px-4 py-1.5 bg-cyan-600 hover:bg-cyan-500 text-slate-950 font-black rounded shadow-[0_0_10px_rgba(0,243,255,0.4)]">
+                Tamamla
+              </button>
+            </div>
+          </div>
+        </div>
+
         <!-- 1. TUŞ GÖRSELLEŞTİRİCİSİ (INPUT VISUALIZER OVERLAY - SAĞ ALT KÖŞE: HER ZAMAN AKTİF VE YALITILMIŞ) -->
         <div class="absolute bottom-5 right-5 bg-[#070d1a]/85 border border-cyan-900/60 rounded-lg p-2.5 backdrop-blur shadow-2xl flex flex-col gap-2 pointer-events-none select-none z-30">
-          <div class="flex items-center justify-between text-[10px] font-mono text-slate-400 border-b border-slate-800/80 pb-1">
-            <span class="text-cyan-400 font-bold uppercase tracking-wider">Girdi Telemetrisi</span>
+          <div class="flex items-center justify-between text-[10px] font-mono text-slate-400 border-b border-slate-800/80 pb-1 gap-3">
+            <div class="flex items-center gap-1.5">
+              <span class="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse"></span>
+              <span id="hud-device-label" class="text-cyan-400 font-bold uppercase tracking-wider">KEYBOARD</span>
+            </div>
             <span id="hud-thrust-val" class="text-amber-400 font-mono font-bold">THROTTLE: 100%</span>
           </div>
 
-          <!-- W, A, S, D Key Grid (Mapped via KEY_MAP) -->
+          <!-- Dynamic Key & Gamepad Visualizer Grid -->
           <div class="flex flex-col items-center gap-1">
-            <!-- W Key -->
-            <div id="key-w" class="keycap w-8 h-8 rounded bg-[#101726] border border-cyan-900/50 flex items-center justify-center text-xs font-mono font-bold text-slate-300">
+            <!-- Row 1: Nav Up (W / D-Pad Up / L-Stick) -->
+            <div id="glyph-nav-up" class="keycap w-8 h-8 rounded bg-[#101726] border border-cyan-900/50 flex items-center justify-center text-xs font-mono font-bold text-slate-300">
               W
             </div>
-            <!-- A, S, D Keys -->
+            <!-- Row 2: Nav Left, Nav Down, Nav Right -->
             <div class="flex gap-1">
-              <div id="key-a" class="keycap w-8 h-8 rounded bg-[#101726] border border-cyan-900/50 flex items-center justify-center text-xs font-mono font-bold text-slate-300">
+              <div id="glyph-nav-left" class="keycap w-8 h-8 rounded bg-[#101726] border border-cyan-900/50 flex items-center justify-center text-xs font-mono font-bold text-slate-300">
                 A
               </div>
-              <div id="key-s" class="keycap w-8 h-8 rounded bg-[#101726] border border-cyan-900/50 flex items-center justify-center text-xs font-mono font-bold text-slate-300">
+              <div id="glyph-nav-down" class="keycap w-8 h-8 rounded bg-[#101726] border border-cyan-900/50 flex items-center justify-center text-xs font-mono font-bold text-slate-300">
                 S
               </div>
-              <div id="key-d" class="keycap w-8 h-8 rounded bg-[#101726] border border-cyan-900/50 flex items-center justify-center text-xs font-mono font-bold text-slate-300">
+              <div id="glyph-nav-right" class="keycap w-8 h-8 rounded bg-[#101726] border border-cyan-900/50 flex items-center justify-center text-xs font-mono font-bold text-slate-300">
                 D
               </div>
             </div>
-            <!-- Space / Shift / M Key Row -->
+            <!-- Row 3: Action Buttons (L1, Primary/Space, R1, Map) -->
             <div class="flex gap-1 w-full mt-0.5">
-              <div id="key-shift" class="keycap flex-1 h-5 rounded bg-[#101726] border border-cyan-900/50 flex items-center justify-center text-[9px] font-mono font-bold text-slate-400">
-                SFT
+              <div id="glyph-btn-l1" class="keycap flex-1 h-5 rounded bg-[#101726] border border-cyan-900/50 flex items-center justify-center text-[9px] font-mono font-bold text-slate-400">
+                Q
               </div>
-              <div id="key-space" class="keycap flex-1 h-5 rounded bg-[#101726] border border-cyan-900/50 flex items-center justify-center text-[9px] font-mono font-bold text-slate-400">
-                SPC
+              <div id="glyph-act-primary" class="keycap flex-1 h-5 rounded bg-[#101726] border border-cyan-900/50 flex items-center justify-center text-[9px] font-mono font-bold text-slate-400">
+                F
               </div>
-              <div id="key-m" class="keycap flex-1 h-5 rounded bg-[#101726] border border-cyan-900/50 flex items-center justify-center text-[9px] font-mono font-bold text-slate-400">
+              <div id="glyph-btn-r1" class="keycap flex-1 h-5 rounded bg-[#101726] border border-cyan-900/50 flex items-center justify-center text-[9px] font-mono font-bold text-slate-400">
+                E
+              </div>
+              <div id="glyph-sys-menu" class="keycap flex-1 h-5 rounded bg-[#101726] border border-cyan-900/50 flex items-center justify-center text-[9px] font-mono font-bold text-slate-400">
                 M
               </div>
             </div>
@@ -439,26 +495,139 @@
       }
     };
 
-    // --- Modular Key Mapping Configuration (KEY_MAP) ---
-    const KEY_MAP = {
-      FORWARD: { code: 'KeyW', altCode: 'ArrowUp', label: 'W', elemId: 'key-w', state: false },
-      BACK:    { code: 'KeyS', altCode: 'ArrowDown', label: 'S', elemId: 'key-s', state: false },
-      LEFT:    { code: 'KeyA', altCode: 'ArrowLeft', label: 'A', elemId: 'key-a', state: false },
-      RIGHT:   { code: 'KeyD', altCode: 'ArrowRight', label: 'D', elemId: 'key-d', state: false },
-      UP:      { code: 'Space', altCode: 'Space', label: 'SPC', elemId: 'key-space', state: false },
-      DOWN:    { code: 'ShiftLeft', altCode: 'ShiftRight', label: 'SFT', elemId: 'key-shift', state: false },
-      MAP:     { code: 'KeyM', altCode: 'KeyM', label: 'M', elemId: 'key-m', state: false }
-    };
+    // Initialize InputManager Engine & HUD Overlay System
+    const input = new CAWInputManager();
+    const hud = new CAWHudOverlay();
+
+    // Keymap Modal State
+    let remappingAction = null;
+
+    function openKeymapModal() {
+      renderKeymapList();
+      document.getElementById('keymap-modal').classList.remove('hidden');
+    }
+
+    function closeKeymapModal() {
+      remappingAction = null;
+      document.getElementById('keymap-modal').classList.add('hidden');
+    }
+
+    function resetKeymapDefaults() {
+      input.resetToDefault();
+      renderKeymapList();
+    }
+
+    function renderKeymapList() {
+      const container = document.getElementById('keymap-list');
+      if (!container) return;
+      container.innerHTML = '';
+
+      const actions = CAWInputManager.ACTIONS;
+      for (const key in actions) {
+        const actId = actions[key];
+        const binding = input.customKeyMap[actId] || { code: 'None', label: 'None' };
+
+        const row = document.createElement('div');
+        row.className = "flex items-center justify-between p-2 rounded bg-slate-900 border border-slate-800 text-xs";
+
+        const label = document.createElement('span');
+        label.className = "font-mono text-slate-300";
+        label.innerText = actId;
+
+        const btn = document.createElement('button');
+        btn.className = "px-2.5 py-1 rounded bg-[#070d1a] border border-cyan-800 hover:border-cyan-400 font-mono text-cyan-300 font-bold min-w-[70px] text-center";
+        btn.id = `remap-btn-${actId}`;
+        btn.innerText = (remappingAction === actId) ? "Basın..." : binding.label || binding.code;
+
+        btn.onclick = () => {
+          remappingAction = actId;
+          btn.innerText = "Basın...";
+          btn.classList.add('border-amber-400', 'text-amber-300');
+        };
+
+        row.appendChild(label);
+        row.appendChild(btn);
+        container.appendChild(row);
+      }
+    }
+
+    window.addEventListener('keydown', (e) => {
+      if (remappingAction) {
+        e.preventDefault();
+        e.stopPropagation();
+        input.remapKey(remappingAction, e.code, e.key.toUpperCase());
+        remappingAction = null;
+        renderKeymapList();
+        return;
+      }
+
+      if (e.code === 'KeyM') {
+        toggleTacticalMap();
+      }
+      if (e.code === 'KeyC') {
+        setCameraMode(STATE.cameraMode === 'rail' ? 'free' : 'rail');
+      }
+      if (e.code === 'Space' && e.ctrlKey) {
+        togglePause();
+      }
+    });
 
     function updateInputVisualizer() {
-      // Direct state update from KEY_MAP
-      for (const key in KEY_MAP) {
-        const item = KEY_MAP[key];
-        const el = document.getElementById(item.elemId);
-        if (el) {
-          if (item.state) el.classList.add('active');
-          else el.classList.remove('active');
-        }
+      const activeDev = input.getActiveDevice();
+      
+      // Update Device Badge & Label
+      const badge = document.getElementById('active-device-badge');
+      if (badge) badge.innerText = activeDev;
+      const devLabel = document.getElementById('hud-device-label');
+      if (devLabel) devLabel.innerText = activeDev;
+
+      // Update Glyphs for current device
+      const glyphNavUp = document.getElementById('glyph-nav-up');
+      if (glyphNavUp) {
+        glyphNavUp.innerText = input.getGlyphForAction(CAWInputManager.ACTIONS.NAV_UP);
+        glyphNavUp.className = `keycap w-8 h-8 rounded bg-[#101726] border border-cyan-900/50 flex items-center justify-center text-xs font-mono font-bold ${input.isActionDown(CAWInputManager.ACTIONS.NAV_UP) ? 'active' : 'text-slate-300'}`;
+      }
+
+      const glyphNavDown = document.getElementById('glyph-nav-down');
+      if (glyphNavDown) {
+        glyphNavDown.innerText = input.getGlyphForAction(CAWInputManager.ACTIONS.NAV_DOWN);
+        glyphNavDown.className = `keycap w-8 h-8 rounded bg-[#101726] border border-cyan-900/50 flex items-center justify-center text-xs font-mono font-bold ${input.isActionDown(CAWInputManager.ACTIONS.NAV_DOWN) ? 'active' : 'text-slate-300'}`;
+      }
+
+      const glyphNavLeft = document.getElementById('glyph-nav-left');
+      if (glyphNavLeft) {
+        glyphNavLeft.innerText = input.getGlyphForAction(CAWInputManager.ACTIONS.NAV_LEFT);
+        glyphNavLeft.className = `keycap w-8 h-8 rounded bg-[#101726] border border-cyan-900/50 flex items-center justify-center text-xs font-mono font-bold ${input.isActionDown(CAWInputManager.ACTIONS.NAV_LEFT) ? 'active' : 'text-slate-300'}`;
+      }
+
+      const glyphNavRight = document.getElementById('glyph-nav-right');
+      if (glyphNavRight) {
+        glyphNavRight.innerText = input.getGlyphForAction(CAWInputManager.ACTIONS.NAV_RIGHT);
+        glyphNavRight.className = `keycap w-8 h-8 rounded bg-[#101726] border border-cyan-900/50 flex items-center justify-center text-xs font-mono font-bold ${input.isActionDown(CAWInputManager.ACTIONS.NAV_RIGHT) ? 'active' : 'text-slate-300'}`;
+      }
+
+      const glyphL1 = document.getElementById('glyph-btn-l1');
+      if (glyphL1) {
+        glyphL1.innerText = input.getGlyphForAction(CAWInputManager.ACTIONS.BTN_L1);
+        glyphL1.className = `keycap flex-1 h-5 rounded bg-[#101726] border border-cyan-900/50 flex items-center justify-center text-[9px] font-mono font-bold ${input.isActionDown(CAWInputManager.ACTIONS.BTN_L1) ? 'active' : 'text-slate-400'}`;
+      }
+
+      const glyphPrimary = document.getElementById('glyph-act-primary');
+      if (glyphPrimary) {
+        glyphPrimary.innerText = input.getGlyphForAction(CAWInputManager.ACTIONS.ACT_PRIMARY);
+        glyphPrimary.className = `keycap flex-1 h-5 rounded bg-[#101726] border border-cyan-900/50 flex items-center justify-center text-[9px] font-mono font-bold ${input.isActionDown(CAWInputManager.ACTIONS.ACT_PRIMARY) ? 'active' : 'text-slate-400'}`;
+      }
+
+      const glyphR1 = document.getElementById('glyph-btn-r1');
+      if (glyphR1) {
+        glyphR1.innerText = input.getGlyphForAction(CAWInputManager.ACTIONS.BTN_R1);
+        glyphR1.className = `keycap flex-1 h-5 rounded bg-[#101726] border border-cyan-900/50 flex items-center justify-center text-[9px] font-mono font-bold ${input.isActionDown(CAWInputManager.ACTIONS.BTN_R1) ? 'active' : 'text-slate-400'}`;
+      }
+
+      const glyphMenu = document.getElementById('glyph-sys-menu');
+      if (glyphMenu) {
+        glyphMenu.innerText = input.getGlyphForAction(CAWInputManager.ACTIONS.SYS_MENU);
+        glyphMenu.className = `keycap flex-1 h-5 rounded bg-[#101726] border border-cyan-900/50 flex items-center justify-center text-[9px] font-mono font-bold ${input.isActionDown(CAWInputManager.ACTIONS.SYS_MENU) ? 'active' : 'text-slate-400'}`;
       }
 
       // Speed & Thrust readout
@@ -475,40 +644,6 @@
       const thrustValEl = document.getElementById('hud-thrust-val');
       if (thrustValEl) thrustValEl.innerText = `THROTTLE: ${thrustPct}%`;
     }
-
-    window.addEventListener('keydown', (e) => {
-      // Sync KEY_MAP
-      for (const key in KEY_MAP) {
-        const item = KEY_MAP[key];
-        if (e.code === item.code || e.code === item.altCode) {
-          item.state = true;
-        }
-      }
-
-      if (e.code === 'KeyM') {
-        toggleTacticalMap();
-      }
-      if (e.code === 'KeyC') {
-        setCameraMode(STATE.cameraMode === 'rail' ? 'free' : 'rail');
-      }
-      if (e.code === 'Space' && e.ctrlKey) {
-        togglePause();
-      }
-
-      updateInputVisualizer();
-    });
-
-    window.addEventListener('keyup', (e) => {
-      // Sync KEY_MAP
-      for (const key in KEY_MAP) {
-        const item = KEY_MAP[key];
-        if (e.code === item.code || e.code === item.altCode) {
-          item.state = false;
-        }
-      }
-
-      updateInputVisualizer();
-    });
 
     function setCameraMode(mode) {
       STATE.cameraMode = mode;
@@ -621,9 +756,14 @@
 
     // --- MAIN GAME LOOP ---
     function render() {
+      // 1. Poll InputManager every frame
+      input.update();
+
       if (!STATE.paused) {
         STATE.time += 0.04;
         STATE.heroZ += (STATE.targetAltitudeZ - STATE.heroZ) * 0.08;
+
+        const moveVec = input.getMovementVector();
 
         // Player Flight Dynamics & Camera Modes
         if (STATE.cameraMode === 'rail') {
@@ -631,15 +771,10 @@
           STATE.cameraY = (STATE.cameraY + STATE.speed) % MAP_TOTAL_LENGTH;
           STATE.cameraX += (0 - STATE.cameraX) * 0.08; // Return cameraX to corridor center
 
-          // Hero moves relative to camera viewport via KEY_MAP
+          // Hero moves relative to camera viewport via InputManager
           const moveSpeed = 4.2;
-          let targetVx = 0;
-          let targetVy = STATE.speed;
-
-          if (KEY_MAP.LEFT.state) targetVx -= moveSpeed;
-          if (KEY_MAP.RIGHT.state) targetVx += moveSpeed;
-          if (KEY_MAP.FORWARD.state) targetVy += moveSpeed;
-          if (KEY_MAP.BACK.state) targetVy -= moveSpeed;
+          let targetVx = moveVec.x * moveSpeed;
+          let targetVy = STATE.speed + (moveVec.y * moveSpeed);
 
           STATE.vx += (targetVx - STATE.vx) * 0.2;
           STATE.vy += (targetVy - STATE.vy) * 0.2;
@@ -659,25 +794,14 @@
           STATE.heroHeading = lerpAngle(STATE.heroHeading, STATE.targetHeading, 0.15);
 
         } else {
-          // FREE MODE: Heading follows velocity vector (atan2) with angular lerp 0.1 via KEY_MAP
+          // FREE MODE: Heading follows velocity vector (atan2) with angular lerp 0.1
           const accel = 0.35;
-          const maxSpd = KEY_MAP.DOWN.state ? 7.0 : 4.8; // Shift key boosts max speed
-          let ax = 0;
-          let ay = 0;
+          const isBoost = input.isActionDown(CAWInputManager.ACTIONS.BTN_L2) || input.isActionDown(CAWInputManager.ACTIONS.BTN_R2);
+          const maxSpd = isBoost ? 7.2 : 5.0;
 
-          if (KEY_MAP.LEFT.state) ax -= 1;
-          if (KEY_MAP.RIGHT.state) ax += 1;
-          if (KEY_MAP.FORWARD.state) ay += 1;
-          if (KEY_MAP.BACK.state) ay -= 1;
-
-          if (ax !== 0 || ay !== 0) {
-            const mag = Math.sqrt(ax * ax + ay * ay);
-            ax = (ax / mag) * accel;
-            ay = (ay / mag) * accel;
-
-            STATE.vx += ax;
-            STATE.vy += ay;
-            // Target heading aligned with movement direction
+          if (moveVec.x !== 0 || moveVec.y !== 0) {
+            STATE.vx += moveVec.x * accel;
+            STATE.vy += moveVec.y * accel;
             STATE.targetHeading = Math.atan2(STATE.vy, STATE.vx);
           } else {
             // Drag friction
@@ -695,7 +819,7 @@
           STATE.heroX += STATE.vx;
           STATE.heroY += STATE.vy;
 
-          // 4. UÇAK ROTASYONU VE İTKİ VEKTÖRÜ HİZALAMASI (HEADING LERP: 0.1)
+          // Uçak rotasyonu ve itki vektörü sönümlü dönüşü
           if (currentSpd > 0.15) {
             STATE.heroHeading = lerpAngle(STATE.heroHeading, STATE.targetHeading, 0.1);
           }
