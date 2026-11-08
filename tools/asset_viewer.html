@@ -132,6 +132,11 @@
             </select>
           </div>
 
+          <!-- Space Coordinate Toggle (World / Local) -->
+          <button onclick="toggleCoordinateSpace()" id="space-toggle-btn" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-amber-400 font-semibold rounded flex items-center gap-1" title="Kısayol: 'X' tuşu">
+            <span>🌐</span> <span id="space-label">Eksen: World</span>
+          </button>
+
           <!-- Camera Projection Toggle -->
           <button onclick="toggleProjection()" id="proj-toggle-btn" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 rounded font-medium">
             📷 Orthographic
@@ -382,6 +387,7 @@
     let isOrthographic = true;
     let isWireframe = false;
     let snapAngle = 22.5; // degrees
+    let activeSpace = 'world'; // 'world' or 'local'
 
     // --- Three.js Globals ---
     let scene, renderer, currentMesh;
@@ -617,6 +623,7 @@
       // 5. TransformControls (3ds Max Style Rotation Gizmo)
       transformControls = new THREE.TransformControls(activeCamera, renderer.domElement);
       transformControls.setMode('rotate'); // Strict ROTATION mode only
+      transformControls.setSpace(activeSpace); // 'world' or 'local'
       transformControls.size = 0.85;
       setSnapAngle(document.getElementById('snap-select').value);
 
@@ -637,13 +644,19 @@
 
       scene.add(transformControls);
 
-      // Shift Key Snap Override
+      // Shift Key Snap Override and 'X' Key Space Toggle
       window.addEventListener('keydown', (e) => {
+        // Prevent shortcuts when typing in notes textarea
+        if (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT') return;
+
         if (e.key === 'Shift') {
           transformControls.setRotationSnap(THREE.MathUtils.degToRad(snapAngle || 22.5));
+        } else if (e.key === 'x' || e.key === 'X') {
+          toggleCoordinateSpace();
         }
       });
       window.addEventListener('keyup', (e) => {
+        if (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT') return;
         if (e.key === 'Shift') {
           setSnapAngle(document.getElementById('snap-select').value);
         }
@@ -798,6 +811,25 @@
         transformControls.setRotationSnap(null);
       } else {
         transformControls.setRotationSnap(THREE.MathUtils.degToRad(angle));
+      }
+    }
+
+    // --- Coordinate Space Toggle (World / Local) ---
+    function toggleCoordinateSpace() {
+      activeSpace = (activeSpace === 'world') ? 'local' : 'world';
+      if (transformControls) {
+        transformControls.setSpace(activeSpace);
+      }
+
+      const btn = document.getElementById('space-toggle-btn');
+      const label = document.getElementById('space-label');
+      
+      if (activeSpace === 'local') {
+        label.innerText = 'Eksen: Local';
+        btn.className = 'px-2.5 py-1 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded flex items-center gap-1 shadow transition';
+      } else {
+        label.innerText = 'Eksen: World';
+        btn.className = 'px-2.5 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-amber-400 font-semibold rounded flex items-center gap-1 transition';
       }
     }
 
